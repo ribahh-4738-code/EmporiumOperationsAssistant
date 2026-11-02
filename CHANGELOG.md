@@ -7,6 +7,10 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+### Alterado
+
+- Default `GEMINI_MODEL=gemini-3.6-flash` em `.env.example` e `config.py` (CLI only; WhatsApp removido do escopo)
+
 ## [0.4.0] - 2026-11-02
 
 ### Adicionado

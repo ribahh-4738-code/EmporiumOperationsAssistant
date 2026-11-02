@@ -1,6 +1,6 @@
 # Emporium Operations Assistant
 
-Assistente conversacional para operações de um emporium de instrumentos musicais. O sistema utiliza a persona **Maiara**, com **CLI** para testes e, em marco futuro, **WhatsApp**.
+Assistente conversacional para operações de um emporium de instrumentos musicais. O sistema utiliza a persona **Maiara**, com **CLI** para testes; WhatsApp fica fora do escopo deste protótipo.
 
 ## Stack planejada
 
@@ -9,7 +9,7 @@ Assistente conversacional para operações de um emporium de instrumentos musica
 | **Python** | Aplicação principal e integrações |
 | **PostgreSQL** | Banco relacional (catálogo, pedidos, clientes, configurações) |
 | **ChromaDB** | Busca semântica sobre conteúdo do emporium |
-| **WhatsApp** | Canal de atendimento (configuração posterior) |
+| **WhatsApp** | Canal de atendimento (marco futuro, se necessário) |
 
 ## Configuração
 
@@ -24,7 +24,7 @@ Assistente conversacional para operações de um emporium de instrumentos musica
 - `ChatService`: histórico no PostgreSQL, Gemini, resumo do catálogo em contexto
 - Carregamento automático do `.env` ao iniciar o chat
 
-**Próximo marco (previsto):** ChromaDB (busca semântica), WhatsApp.
+**Próximo marco (previsto):** ChromaDB (busca semântica).
 
 ## Chat na linha de comando
 
@@ -105,7 +105,7 @@ Se a estrutura de um CSV mudar, atualize `manifest.json`, `schema.sql` e adicion
 Variáveis no `.env` (ver [`.env.example`](.env.example)):
 
 - `ASSISTANT_DISPLAY_NAME`, `ASSISTANT_PROFILE_NAME`
-- `LLM_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL`
+- `LLM_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL` (padrão `gemini-3.6-flash` em `.env.example`)
 
 Teste opcional do adapter (requer chave):
 

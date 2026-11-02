@@ -33,37 +33,43 @@ Assistente conversacional para operações de um emporium de instrumentos musica
 
 ## Pré-requisitos
 
-- PostgreSQL 14+ (cliente `psql` no PATH)
-- Bash (para o script de criação do banco)
+- **Docker** (PostgreSQL do projeto roda em container; não é necessário informar senha manualmente)
+- Bash
 
-## Setup rápido do banco
+## Instalação (`./install.sh`)
 
-1. Clone o repositório e entre na pasta do projeto.
+O script na raiz instala de forma **incremental** (novos passos serão adicionados nos próximos marcos).
 
-2. Copie o exemplo de ambiente e ajuste credenciais:
+**Ver o que será executado (sem alterar nada):**
 
-   ```bash
-   cp .env.example .env
-   ```
+```bash
+chmod +x install.sh
+./install.sh --dry-run
+```
 
-3. Crie o banco de dados:
+**Instalar (container PostgreSQL + schema):**
 
-   ```bash
-   chmod +x scripts/db/create_database.sh
-   ./scripts/db/create_database.sh
-   ```
+```bash
+./install.sh
+```
 
-4. Aplique o schema (conectado ao banco `emporium_operation`):
+O instalador:
 
-   ```bash
-   psql -d emporium_operation -f db/schema.sql
-   ```
+1. Cria `.env` a partir de `.env.example` se ainda não existir (credenciais de **desenvolvimento local** já preenchidas)
+2. Sobe o container `emporium_ops_postgres` (imagem `postgres:16-alpine`, volume persistente)
+3. Garante o banco `emporium_operation` e aplica `db/schema.sql`
+4. Lista as tabelas criadas (esperado: **6 tabelas**, ainda **sem dados** até a importação do marco 2)
 
-5. Verifique as tabelas (esperado: **6 tabelas**, ainda **sem dados** até a importação do marco 2):
+Conexão padrão após o install: `localhost:5435`, usuário/senha/banco conforme `.env`.
 
-   ```bash
-   psql -d emporium_operation -c "\dt"
-   ```
+## Setup manual (opcional, sem Docker)
+
+Se preferir PostgreSQL no host, ajuste `.env` (por exemplo porta `5432`) e use:
+
+```bash
+./scripts/db/create_database.sh
+./scripts/db/apply_schema.sh
+```
 
 ## Estrutura do repositório
 
@@ -71,12 +77,17 @@ Assistente conversacional para operações de um emporium de instrumentos musica
 EmporiumOperationsAssistant/
 ├── CHANGELOG.md
 ├── README.md
+├── install.sh            # Instalação incremental (Docker + DB)
 ├── data/                 # CSVs de seed
 ├── db/
 │   └── schema.sql        # DDL PostgreSQL
 └── scripts/
+    ├── lib/
+    │   └── env.sh
     └── db/
-        └── create_database.sh
+        ├── apply_schema.sh
+        ├── create_database.sh
+        └── ensure_postgres_container.sh
 ```
 
 ## Dados de seed (`data/`)

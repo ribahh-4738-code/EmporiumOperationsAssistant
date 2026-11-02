@@ -1,6 +1,7 @@
-# Environment
+# Environment (keep .env.example tracked)
 .env
 .env.local
+!.env.example
 
 # Python
 __pycache__/

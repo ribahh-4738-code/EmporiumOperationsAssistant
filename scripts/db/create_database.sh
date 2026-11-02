@@ -3,31 +3,32 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-ENV_FILE="${ROOT_DIR}/.env"
+# shellcheck disable=SC1091
+source "${ROOT_DIR}/scripts/lib/env.sh"
 
-if [[ -f "${ENV_FILE}" ]]; then
-  set -a
-  # shellcheck disable=SC1090
-  source "${ENV_FILE}"
-  set +a
+load_project_env "${ROOT_DIR}"
+apply_postgres_defaults
+
+DRY_RUN="${DRY_RUN:-0}"
+
+if [[ "${DRY_RUN}" == "1" ]]; then
+  echo "  -> ensure database '${POSTGRES_DB}' exists"
+  exit 0
 fi
 
-POSTGRES_HOST="${POSTGRES_HOST:-localhost}"
-POSTGRES_PORT="${POSTGRES_PORT:-5432}"
-POSTGRES_USER="${POSTGRES_USER:-postgres}"
-POSTGRES_DB="${POSTGRES_DB:-emporium_operation}"
+psql_admin() {
+  if docker ps --format '{{.Names}}' | grep -qx "${EMPORIUM_DOCKER_CONTAINER}"; then
+    docker exec "${EMPORIUM_DOCKER_CONTAINER}" psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d postgres "$@"
+  else
+    export_pg_vars
+    psql -v ON_ERROR_STOP=1 -d postgres "$@"
+  fi
+}
 
-export PGHOST="${POSTGRES_HOST}"
-export PGPORT="${POSTGRES_PORT}"
-export PGUSER="${POSTGRES_USER}"
-if [[ -n "${POSTGRES_PASSWORD:-}" ]]; then
-  export PGPASSWORD="${POSTGRES_PASSWORD}"
-fi
-
-exists="$(psql -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = '${POSTGRES_DB}'" || true)"
+exists="$(psql_admin -tAc "SELECT 1 FROM pg_database WHERE datname = '${POSTGRES_DB}'" || true)"
 if [[ "${exists}" == "1" ]]; then
   echo "Database '${POSTGRES_DB}' already exists."
 else
-  psql -d postgres -c "CREATE DATABASE ${POSTGRES_DB} ENCODING 'UTF8' TEMPLATE template0;"
+  psql_admin -c "CREATE DATABASE ${POSTGRES_DB} ENCODING 'UTF8' TEMPLATE template0;"
   echo "Created database '${POSTGRES_DB}'."
 fi

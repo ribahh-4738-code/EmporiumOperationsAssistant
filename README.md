@@ -14,18 +14,18 @@ Assistente conversacional para operações de um emporium de instrumentos musica
 ## Configuração
 
 - Variáveis de ambiente sensíveis e de infraestrutura ficam no arquivo **`.env`** (use [`.env.example`](.env.example) como modelo).
-- Parâmetros operacionais do assistente — por exemplo **`system_prompt`** — serão armazenados no **PostgreSQL** em um marco futuro.
+- Textos da persona e prompts modulares ficam no **PostgreSQL** (`assistant_*`). No **`.env`**: provider/modelo LLM, nome exibido da atendente (`ASSISTANT_DISPLAY_NAME`), chaves de API.
 
-## Marco 2 (v0.2.0) — Importação CSV e esqueleto Python
+## Marco 3 (v0.3.0) — Base conversacional
 
 **Entregue neste marco:**
 
-- Importação dos CSVs com truncate + carga (`src/emporium_operations_assistant/seed/`)
-- Manifest [`db/seed/manifest.json`](db/seed/manifest.json) (colunas e contagens esperadas)
-- Migrations incrementais em [`db/migrations/`](db/migrations/) e tabela `schema_migrations`
-- Pacote Python mínimo (`pyproject.toml`, `.venv` via install)
+- Tabelas `assistant_profile`, `assistant_prompt`, `assistant_chat_message`
+- Seed idempotente da Maiara ([`db/seed/assistant/default.json`](db/seed/assistant/default.json))
+- Camada **multi-adapter** LLM (`LLMProvider`) com **Gemini** (`google-genai`)
+- Repositório + montagem de prompts (`AssistantService`) — sem CLI/WhatsApp ainda
 
-**Próximo marco (previsto):** assistente conversacional (persona Maiara), CLI e integrações.
+**Próximo marco (previsto):** ChromaDB, CLI REPL, WhatsApp.
 
 ## Pré-requisitos
 
@@ -57,6 +57,7 @@ O instalador:
 3. Garante o banco `emporium_operation`, aplica `db/schema.sql` (somente DDL) e migrations pendentes
 4. Cria `.venv`, instala dependências e **importa os CSVs** (truncate + load)
 5. Verifica contagens de linhas contra [`db/seed/manifest.json`](db/seed/manifest.json)
+6. Garante profile/prompts do assistente (passo 10; **não** apaga `assistant_chat_message`)
 
 Passos já satisfeitos aparecem como `[skip]`; passos executados como `[run]`.
 
@@ -64,7 +65,7 @@ Conexão padrão após o install: `localhost:5435`, usuário/senha/banco conform
 
 ### Dados de seed e truncate
 
-As tabelas alimentadas pelos CSVs (`categories`, `customers`, `products`, `orders`, `order_items`, `promotions`) são **sempre truncadas** antes de cada import no `./install.sh`. Os arquivos em [`data/`](data/) representam uma **exportação de outro sistema** (fonte operacional); o PostgreSQL local é uma réplica para consulta do assistente, não a fonte da verdade. Por isso cada install **substitui** o conteúdo dessas tabelas — não há merge incremental. Tabelas futuras exclusivas do assistente (configurações, conversas, etc.) **não** entram nesse truncate.
+As tabelas alimentadas pelos CSVs (`categories`, `customers`, `products`, `orders`, `order_items`, `promotions`) são **sempre truncadas** antes de cada import no `./install.sh`. Os arquivos em [`data/`](data/) representam uma **exportação de outro sistema** (fonte operacional); o PostgreSQL local é uma réplica para consulta do assistente, não a fonte da verdade. Por isso cada install **substitui** o conteúdo dessas tabelas — não há merge incremental. Tabelas `assistant_*` **não** entram nesse truncate. O histórico em `assistant_chat_message` é preservado entre installs.
 
 O arquivo [`db/schema.sql`](db/schema.sql) **não contém dados** — apenas DDL. Dados entram somente via import dos CSVs.
 
@@ -78,6 +79,40 @@ O arquivo [`db/schema.sql`](db/schema.sql) **não contém dados** — apenas DDL
 
 Se a estrutura de um CSV mudar, atualize `manifest.json`, `schema.sql` e adicione um arquivo em `db/migrations/` (veja [`db/migrations/README.md`](db/migrations/README.md)).
 
+### Assistente (PostgreSQL + LLM)
+
+| Tabela | Uso |
+|--------|-----|
+| `assistant_profile` | Persona (`system_prompt`, timezone, `profile_name`) |
+| `assistant_prompt` | Prompts por `module_key` (ex. `reformulate_request`) |
+| `assistant_chat_message` | Auditoria de mensagens (`role`, `message_text`, `model`, `channel`) |
+
+Variáveis no `.env` (ver [`.env.example`](.env.example)):
+
+- `ASSISTANT_DISPLAY_NAME`, `ASSISTANT_PROFILE_NAME`
+- `LLM_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL`
+
+Teste opcional do adapter (requer chave):
+
+```bash
+export GEMINI_API_KEY=...
+.venv/bin/python -m emporium_operations_assistant.llm.adapters.gemini
+```
+
+Smoke test sem API:
+
+```bash
+DRY_RUN=1 .venv/bin/python -m emporium_operations_assistant.llm.adapters.gemini
+```
+
+Contexto de prompts (sem conversa interativa):
+
+```bash
+.venv/bin/python -c "from emporium_operations_assistant.assistant.service import AssistantService; print(AssistantService().build_prompt_context().system_instruction[:200])"
+```
+
+Planos de marco locais (não versionados): pasta `MDs/` (ver `.gitignore`).
+
 ## Setup manual (opcional, sem Docker)
 
 Se preferir PostgreSQL no host, ajuste `.env` (por exemplo porta `5432`) e use:
@@ -88,6 +123,7 @@ Se preferir PostgreSQL no host, ajuste `.env` (por exemplo porta `5432`) e use:
 ./scripts/db/apply_migrations.sh
 ./scripts/db/import_seed.sh
 ./scripts/db/verify_seed.sh
+./scripts/db/seed_assistant.sh
 ```
 
 ## Estrutura do repositório
@@ -105,7 +141,9 @@ EmporiumOperationsAssistant/
 │   └── migrations/
 ├── src/emporium_operations_assistant/
 │   ├── config.py
-│   └── seed/             # validate, import, verify
+│   ├── assistant/        # repository, prompts, seed
+│   ├── llm/              # adapters (gemini, local stub)
+│   └── seed/             # CSV validate, import, verify
 └── scripts/
     ├── lib/
     │   ├── env.sh
@@ -117,6 +155,7 @@ EmporiumOperationsAssistant/
         ├── ensure_postgres_container.sh
         ├── ensure_venv.sh
         ├── import_seed.sh
+        ├── seed_assistant.sh
         └── verify_seed.sh
 ```
 

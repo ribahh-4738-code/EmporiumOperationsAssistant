@@ -36,6 +36,7 @@ Installation plan (incremental):
   7. Python virtualenv and dependencies
   8. Seed import (truncate CSV-backed tables + load data/*.csv)
   9. Verify row counts vs manifest
+ 10. Assistant defaults (profile + module prompts, idempotent)
 
 Steps marked [skip] are omitted when already satisfied.
 
@@ -101,6 +102,9 @@ main() {
 
   log_step "Step 9: Verify seed data"
   "${ROOT_DIR}/scripts/db/verify_seed.sh"
+
+  log_step "Step 10: Assistant defaults"
+  "${ROOT_DIR}/scripts/db/seed_assistant.sh"
 
   if [[ "${DRY_RUN}" != "1" ]]; then
     echo ""

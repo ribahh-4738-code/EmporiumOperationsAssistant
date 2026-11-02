@@ -7,6 +7,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-02
+
+### Adicionado
+
+- Tabelas `assistant_profile`, `assistant_prompt`, `assistant_chat_message` e migration `002_assistant_tables.sql`
+- Seed idempotente Maiara (`db/seed/assistant/default.json`, `seed_assistant.sh`, passo 10 do install)
+- Config `Settings`, adapters LLM (`GeminiAdapter`, stub local), `AssistantRepository` e `AssistantService`
+- `.env.example`: `ASSISTANT_*`, `LLM_PROVIDER`, `GEMINI_*`
+- Dependência `google-genai`
+
 ## [0.2.0] - 2026-11-02
 
 ### Adicionado
@@ -38,7 +48,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - `.gitignore` para Python, ambiente e ferramentas futuras
 - Script `scripts/db/create_database.sh` para criação idempotente do banco
 
-[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/releases/tag/v0.1.0

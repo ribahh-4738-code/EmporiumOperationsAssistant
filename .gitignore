@@ -27,3 +27,6 @@ chroma_data/
 # OS
 .DS_Store
 Thumbs.db
+
+# Local Cursor plans and working notes (not versioned)
+MDs/

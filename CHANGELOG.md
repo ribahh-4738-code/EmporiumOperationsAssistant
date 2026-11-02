@@ -7,6 +7,11 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+### Alterado
+
+- [`./chat.sh`](chat.sh) na raiz do repositório; `scripts/chat.sh` redireciona
+- README: início rápido, scripts pós-install, itens fora de escopo (dashboard, WhatsApp Meta, LLM local)
+
 ## [0.5.0] - 2026-11-02
 
 ### Adicionado

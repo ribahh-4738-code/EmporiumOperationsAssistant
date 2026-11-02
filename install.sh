@@ -23,40 +23,32 @@ log_step() {
   echo "==> $*"
 }
 
-run_cmd() {
-  if [[ "${DRY_RUN}" == "1" ]]; then
-    echo "  -> $*"
-  else
-    eval "$@"
-  fi
-}
-
 print_plan() {
   cat <<'EOF'
-Installation plan (incremental; more steps will be added in future milestones):
+Installation plan (incremental):
 
-  1. Check prerequisites (Docker)
-  2. Create .env from .env.example if missing (dev defaults, no prompts)
-  3. Start PostgreSQL in Docker (dedicated container + volume)
-  4. Ensure database exists (emporium_operation)
-  5. Apply db/schema.sql
-  6. Verify public tables exist
+  1. Prerequisites (Docker, Python 3)
+  2. Environment file (.env)
+  3. PostgreSQL Docker container
+  4. Database emporium_operation
+  5. Schema (db/schema.sql, DDL only)
+  6. Pending migrations (db/migrations/*.sql)
+  7. Python virtualenv and dependencies
+  8. Seed import (truncate CSV-backed tables + load data/*.csv)
+  9. Verify row counts vs manifest
 
-Connection after install (from .env):
-  Host: localhost
-  Port: 5435 (default; avoids conflict with local PostgreSQL on 5432)
-  User / password / database: see .env (defaults suitable for local dev only)
+Steps marked [skip] are omitted when already satisfied.
 
 EOF
 }
 
 write_default_env() {
   if [[ "${DRY_RUN}" == "1" ]]; then
-    echo "  -> write ${ENV_FILE} from ${ENV_EXAMPLE} with dev PostgreSQL defaults"
+    echo "  -> create ${ENV_FILE} from ${ENV_EXAMPLE} if missing"
     return 0
   fi
   if [[ -f "${ENV_FILE}" ]]; then
-    echo "  .env already exists; keeping current file."
+    echo "[skip] .env already exists."
     return 0
   fi
   if [[ ! -f "${ENV_EXAMPLE}" ]]; then
@@ -64,24 +56,23 @@ write_default_env() {
     exit 1
   fi
   sed 's/\r$//' "${ENV_EXAMPLE}" > "${ENV_FILE}"
-  echo "  Created ${ENV_FILE} from .env.example (edit if you change ports or credentials)."
+  echo "[run] Created ${ENV_FILE} from .env.example."
 }
 
 main() {
   print_plan
-
   if [[ "${DRY_RUN}" == "1" ]]; then
     echo "(dry-run mode — no changes will be made)"
   fi
 
   log_step "Step 1: Prerequisites"
   if [[ "${DRY_RUN}" == "1" ]]; then
-    echo "  -> command -v docker"
-  elif ! command -v docker >/dev/null 2>&1; then
-    echo "Docker is not installed or not in PATH." >&2
-    exit 1
+    echo "  -> command -v docker && command -v python3"
   else
-    echo "  Docker: $(docker --version)"
+    command -v docker >/dev/null || { echo "Docker is required." >&2; exit 1; }
+    command -v python3 >/dev/null || { echo "python3 is required." >&2; exit 1; }
+    echo "[run] Docker: $(docker --version)"
+    echo "[run] Python: $(python3 --version)"
   fi
 
   log_step "Step 2: Environment file"
@@ -91,34 +82,29 @@ main() {
   apply_postgres_defaults
 
   log_step "Step 3: PostgreSQL container"
-  run_cmd "\"${ROOT_DIR}/scripts/db/ensure_postgres_container.sh\""
+  "${ROOT_DIR}/scripts/db/ensure_postgres_container.sh"
 
   log_step "Step 4: Database"
-  if [[ "${DRY_RUN}" == "1" ]]; then
-    echo "  -> ${ROOT_DIR}/scripts/db/create_database.sh (idempotent; Docker may already create ${POSTGRES_DB})"
-  else
-    "${ROOT_DIR}/scripts/db/create_database.sh"
-  fi
+  "${ROOT_DIR}/scripts/db/create_database.sh"
 
   log_step "Step 5: Schema"
-  run_cmd "\"${ROOT_DIR}/scripts/db/apply_schema.sh\""
+  "${ROOT_DIR}/scripts/db/apply_schema.sh"
 
-  log_step "Step 6: Verification"
-  if [[ "${DRY_RUN}" == "1" ]]; then
-    echo "  -> list public tables and row counts in ${POSTGRES_DB}"
-  else
-    if docker ps --format '{{.Names}}' | grep -qx "${EMPORIUM_DOCKER_CONTAINER}"; then
-      docker exec "${EMPORIUM_DOCKER_CONTAINER}" \
-        psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c "\dt"
-      docker exec "${EMPORIUM_DOCKER_CONTAINER}" \
-        psql -U "${POSTGRES_USER}" -d "${POSTGRES_DB}" -c \
-        "SELECT relname AS table_name FROM pg_stat_user_tables ORDER BY relname;"
-    else
-      export_pg_vars
-      psql -d "${POSTGRES_DB}" -c "\dt"
-    fi
+  log_step "Step 6: Migrations"
+  "${ROOT_DIR}/scripts/db/apply_migrations.sh"
+
+  log_step "Step 7: Python environment"
+  "${ROOT_DIR}/scripts/db/ensure_venv.sh"
+
+  log_step "Step 8: Import seed data (truncate + CSV load)"
+  "${ROOT_DIR}/scripts/db/import_seed.sh"
+
+  log_step "Step 9: Verify seed data"
+  "${ROOT_DIR}/scripts/db/verify_seed.sh"
+
+  if [[ "${DRY_RUN}" != "1" ]]; then
     echo ""
-    echo "Install finished. PostgreSQL is available at localhost:${POSTGRES_PORT} (credentials in .env)."
+    echo "Install finished. PostgreSQL at localhost:${POSTGRES_PORT} (see .env)."
   fi
 }
 

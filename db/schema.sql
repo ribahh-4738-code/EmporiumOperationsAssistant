@@ -98,4 +98,14 @@ CREATE INDEX IF NOT EXISTS idx_promotions_is_active ON promotions (is_active);
 
 COMMENT ON TABLE promotions IS 'Product-level promotional discounts';
 
+-- ---------------------------------------------------------------------------
+-- schema_migrations (DDL change tracking; not seed data)
+-- ---------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS schema_migrations (
+    version    VARCHAR(128) PRIMARY KEY,
+    applied_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+COMMENT ON TABLE schema_migrations IS 'Applied SQL migrations from db/migrations/';
+
 COMMIT;

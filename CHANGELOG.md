@@ -7,6 +7,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-02
+
+### Adicionado
+
+- Importação de seed via Python/psycopg (`import_seed`, `verify`, validação de headers)
+- [`db/seed/manifest.json`](db/seed/manifest.json) e truncate + reload a cada `./install.sh`
+- Pipeline de migrations (`schema_migrations`, `apply_migrations.sh`, `db/migrations/README.md`)
+- Esqueleto Python (`pyproject.toml`, pacote `src/emporium_operations_assistant/`)
+- README: política de truncate (dados CSV = sistema externo)
+
 ## [0.1.1] - 2026-11-02
 
 ### Adicionado
@@ -28,6 +38,7 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - `.gitignore` para Python, ambiente e ferramentas futuras
 - Script `scripts/db/create_database.sh` para criação idempotente do banco
 
-[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.1.1...HEAD
+[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/releases/tag/v0.1.0

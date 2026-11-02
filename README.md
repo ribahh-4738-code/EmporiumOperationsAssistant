@@ -16,24 +16,21 @@ Assistente conversacional para operações de um emporium de instrumentos musica
 - Variáveis de ambiente sensíveis e de infraestrutura ficam no arquivo **`.env`** (use [`.env.example`](.env.example) como modelo).
 - Parâmetros operacionais do assistente — por exemplo **`system_prompt`** — serão armazenados no **PostgreSQL** em um marco futuro.
 
-## Marco 1 (v0.1.0) — Documentação e banco de dados
+## Marco 2 (v0.2.0) — Importação CSV e esqueleto Python
 
 **Entregue neste marco:**
 
-- Dados de seed em [`data/`](data/) (CSV)
-- Schema PostgreSQL em [`db/schema.sql`](db/schema.sql)
-- Script auxiliar para criar o banco [`scripts/db/create_database.sh`](scripts/db/create_database.sh)
-- Documentação (`README`, `CHANGELOG`)
+- Importação dos CSVs com truncate + carga (`src/emporium_operations_assistant/seed/`)
+- Manifest [`db/seed/manifest.json`](db/seed/manifest.json) (colunas e contagens esperadas)
+- Migrations incrementais em [`db/migrations/`](db/migrations/) e tabela `schema_migrations`
+- Pacote Python mínimo (`pyproject.toml`, `.venv` via install)
 
-**Próximo marco (previsto):**
-
-- Estrutura base do projeto Python
-- Script de importação dos CSVs para o PostgreSQL
-- Validação de contagens pós-importação
+**Próximo marco (previsto):** assistente conversacional (persona Maiara), CLI e integrações.
 
 ## Pré-requisitos
 
 - **Docker** (PostgreSQL do projeto roda em container; não é necessário informar senha manualmente)
+- **Python 3.11+**
 - Bash
 
 ## Instalação (`./install.sh`)
@@ -57,10 +54,29 @@ O instalador:
 
 1. Cria `.env` a partir de `.env.example` se ainda não existir (credenciais de **desenvolvimento local** já preenchidas)
 2. Sobe o container `emporium_ops_postgres` (imagem `postgres:16-alpine`, volume persistente)
-3. Garante o banco `emporium_operation` e aplica `db/schema.sql`
-4. Lista as tabelas criadas (esperado: **6 tabelas**, ainda **sem dados** até a importação do marco 2)
+3. Garante o banco `emporium_operation`, aplica `db/schema.sql` (somente DDL) e migrations pendentes
+4. Cria `.venv`, instala dependências e **importa os CSVs** (truncate + load)
+5. Verifica contagens de linhas contra [`db/seed/manifest.json`](db/seed/manifest.json)
+
+Passos já satisfeitos aparecem como `[skip]`; passos executados como `[run]`.
 
 Conexão padrão após o install: `localhost:5435`, usuário/senha/banco conforme `.env`.
+
+### Dados de seed e truncate
+
+As tabelas alimentadas pelos CSVs (`categories`, `customers`, `products`, `orders`, `order_items`, `promotions`) são **sempre truncadas** antes de cada import no `./install.sh`. Os arquivos em [`data/`](data/) representam uma **exportação de outro sistema** (fonte operacional); o PostgreSQL local é uma réplica para consulta do assistente, não a fonte da verdade. Por isso cada install **substitui** o conteúdo dessas tabelas — não há merge incremental. Tabelas futuras exclusivas do assistente (configurações, conversas, etc.) **não** entram nesse truncate.
+
+O arquivo [`db/schema.sql`](db/schema.sql) **não contém dados** — apenas DDL. Dados entram somente via import dos CSVs.
+
+### Conferir dados após o install
+
+```bash
+./scripts/db/verify_seed.sh
+# ou
+.venv/bin/python -m emporium_operations_assistant.seed.verify
+```
+
+Se a estrutura de um CSV mudar, atualize `manifest.json`, `schema.sql` e adicione um arquivo em `db/migrations/` (veja [`db/migrations/README.md`](db/migrations/README.md)).
 
 ## Setup manual (opcional, sem Docker)
 
@@ -69,6 +85,9 @@ Se preferir PostgreSQL no host, ajuste `.env` (por exemplo porta `5432`) e use:
 ```bash
 ./scripts/db/create_database.sh
 ./scripts/db/apply_schema.sh
+./scripts/db/apply_migrations.sh
+./scripts/db/import_seed.sh
+./scripts/db/verify_seed.sh
 ```
 
 ## Estrutura do repositório
@@ -77,17 +96,28 @@ Se preferir PostgreSQL no host, ajuste `.env` (por exemplo porta `5432`) e use:
 EmporiumOperationsAssistant/
 ├── CHANGELOG.md
 ├── README.md
-├── install.sh            # Instalação incremental (Docker + DB)
-├── data/                 # CSVs de seed
+├── install.sh
+├── pyproject.toml
+├── data/                 # CSVs (export do sistema externo)
 ├── db/
-│   └── schema.sql        # DDL PostgreSQL
+│   ├── schema.sql        # DDL baseline (sem INSERT)
+│   ├── seed/manifest.json
+│   └── migrations/
+├── src/emporium_operations_assistant/
+│   ├── config.py
+│   └── seed/             # validate, import, verify
 └── scripts/
     ├── lib/
-    │   └── env.sh
+    │   ├── env.sh
+    │   └── psql.sh
     └── db/
+        ├── apply_migrations.sh
         ├── apply_schema.sh
         ├── create_database.sh
-        └── ensure_postgres_container.sh
+        ├── ensure_postgres_container.sh
+        ├── ensure_venv.sh
+        ├── import_seed.sh
+        └── verify_seed.sh
 ```
 
 ## Dados de seed (`data/`)

@@ -1,0 +1,96 @@
+{
+  "load_order": [
+    "categories",
+    "customers",
+    "products",
+    "orders",
+    "order_items",
+    "promotions"
+  ],
+  "truncate_order": [
+    "promotions",
+    "order_items",
+    "orders",
+    "products",
+    "customers",
+    "categories"
+  ],
+  "tables": {
+    "categories": {
+      "csv_file": "categories.csv",
+      "table": "categories",
+      "columns": [
+        "category_id",
+        "name",
+        "description"
+      ],
+      "expected_rows": 9
+    },
+    "customers": {
+      "csv_file": "customers.csv",
+      "table": "customers",
+      "columns": [
+        "customer_id",
+        "name",
+        "phone",
+        "email",
+        "city"
+      ],
+      "expected_rows": 50
+    },
+    "products": {
+      "csv_file": "products.csv",
+      "table": "products",
+      "columns": [
+        "product_id",
+        "price_brl",
+        "name",
+        "category_id",
+        "description",
+        "stock_quantity",
+        "status",
+        "specs",
+        "created_at"
+      ],
+      "expected_rows": 65
+    },
+    "orders": {
+      "csv_file": "orders.csv",
+      "table": "orders",
+      "columns": [
+        "order_id",
+        "customer_id",
+        "order_date",
+        "status",
+        "total_brl",
+        "payment_method",
+        "tracking_code",
+        "estimated_delivery",
+        "notes"
+      ],
+      "expected_rows": 20
+    },
+    "order_items": {
+      "csv_file": "order_items.csv",
+      "table": "order_items",
+      "columns": [
+        "order_id",
+        "quantity",
+        "product_id"
+      ],
+      "expected_rows": 22
+    },
+    "promotions": {
+      "csv_file": "promotions.csv",
+      "table": "promotions",
+      "columns": [
+        "promotion_id",
+        "product_id",
+        "discount_percent",
+        "description",
+        "is_active"
+      ],
+      "expected_rows": 25
+    }
+  }
+}

@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 # shellcheck disable=SC1091
 source "${ROOT_DIR}/scripts/lib/env.sh"
+# shellcheck disable=SC1091
+source "${ROOT_DIR}/scripts/lib/psql.sh"
 
 load_project_env "${ROOT_DIR}"
 apply_postgres_defaults
@@ -16,19 +18,10 @@ if [[ "${DRY_RUN}" == "1" ]]; then
   exit 0
 fi
 
-psql_admin() {
-  if docker ps --format '{{.Names}}' | grep -qx "${EMPORIUM_DOCKER_CONTAINER}"; then
-    docker exec "${EMPORIUM_DOCKER_CONTAINER}" psql -v ON_ERROR_STOP=1 -U "${POSTGRES_USER}" -d postgres "$@"
-  else
-    export_pg_vars
-    psql -v ON_ERROR_STOP=1 -d postgres "$@"
-  fi
-}
-
-exists="$(psql_admin -tAc "SELECT 1 FROM pg_database WHERE datname = '${POSTGRES_DB}'" || true)"
+exists="$(emporium_psql_postgres_db -tAc "SELECT 1 FROM pg_database WHERE datname = '${POSTGRES_DB}'" || true)"
 if [[ "${exists}" == "1" ]]; then
-  echo "Database '${POSTGRES_DB}' already exists."
+  echo "[skip] Database '${POSTGRES_DB}' already exists."
 else
-  psql_admin -c "CREATE DATABASE ${POSTGRES_DB} ENCODING 'UTF8' TEMPLATE template0;"
-  echo "Created database '${POSTGRES_DB}'."
+  emporium_psql_postgres_db -c "CREATE DATABASE ${POSTGRES_DB} ENCODING 'UTF8' TEMPLATE template0;"
+  echo "[run] Created database '${POSTGRES_DB}'."
 fi

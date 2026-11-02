@@ -1,0 +1,16 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "emporium-operations-assistant"
+version = "0.2.0"
+description = "Conversational operations assistant for Emporium (Maiara persona)"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "psycopg[binary]>=3.2",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]

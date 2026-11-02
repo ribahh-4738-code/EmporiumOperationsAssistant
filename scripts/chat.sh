@@ -27,4 +27,8 @@ if [[ ! -x "${ROOT_DIR}/.venv/bin/emporium-chat" ]]; then
   exit 1
 fi
 
+if [[ -x "${ROOT_DIR}/scripts/chroma/ensure_chroma_container.sh" ]]; then
+  "${ROOT_DIR}/scripts/chroma/ensure_chroma_container.sh" || true
+fi
+
 exec "${ROOT_DIR}/.venv/bin/emporium-chat" "$@"

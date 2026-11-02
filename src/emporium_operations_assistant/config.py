@@ -42,6 +42,13 @@ class Settings:
     llm_temperature: float
     chat_history_limit: int
     chat_channel: str
+    chroma_host: str
+    chroma_port: int
+    chroma_collection: str
+    rag_top_k: int
+    rag_chunk_size: int
+    rag_chunk_overlap: int
+    gemini_embedding_model: str
 
 
 def load_settings(*, load_env_file: bool = True) -> Settings:
@@ -62,6 +69,15 @@ def load_settings(*, load_env_file: bool = True) -> Settings:
         llm_temperature=float(os.environ.get("LLM_TEMPERATURE", "0.7")),
         chat_history_limit=int(os.environ.get("CHAT_HISTORY_LIMIT", "20")),
         chat_channel=os.environ.get("CHAT_CHANNEL", "cli"),
+        chroma_host=os.environ.get("CHROMA_HOST", "localhost"),
+        chroma_port=int(os.environ.get("CHROMA_PORT", "8001")),
+        chroma_collection=os.environ.get("CHROMA_COLLECTION", "store_policies"),
+        rag_top_k=int(os.environ.get("RAG_TOP_K", "5")),
+        rag_chunk_size=int(os.environ.get("RAG_CHUNK_SIZE", "900")),
+        rag_chunk_overlap=int(os.environ.get("RAG_CHUNK_OVERLAP", "120")),
+        gemini_embedding_model=os.environ.get(
+            "GEMINI_EMBEDDING_MODEL", "gemini-embedding-001"
+        ),
     )
 
 

@@ -37,6 +37,8 @@ Installation plan (incremental):
   8. Seed import (truncate CSV-backed tables + load data/*.csv)
   9. Verify row counts vs manifest
  10. Assistant defaults (profile + module prompts, idempotent)
+ 11. ChromaDB Docker container + ChromaDB Admin UI
+ 12. RAG ingest (PDF policies → Chroma, idempotent by file hash)
 
 Steps marked [skip] are omitted when already satisfied.
 
@@ -111,9 +113,23 @@ main() {
   log_step "Step 10: Assistant defaults"
   "${ROOT_DIR}/scripts/db/seed_assistant.sh"
 
+  load_project_env "${ROOT_DIR}"
+  apply_chroma_defaults
+
+  log_step "Step 11: ChromaDB + Admin UI"
+  "${ROOT_DIR}/scripts/chroma/ensure_chroma_container.sh"
+  "${ROOT_DIR}/scripts/chroma/ensure_chroma_admin_container.sh"
+
+  log_step "Step 12: RAG document ingest"
+  if [[ "${DRY_RUN}" == "1" ]]; then
+    echo "  -> scripts/chroma/ingest_rag.sh"
+  else
+    "${ROOT_DIR}/scripts/chroma/ingest_rag.sh"
+  fi
+
   if [[ "${DRY_RUN}" != "1" ]]; then
     echo ""
-    echo "Install finished. PostgreSQL at localhost:${POSTGRES_PORT} (see .env)."
+    echo "Install finished. PostgreSQL localhost:${POSTGRES_PORT}, Chroma localhost:${CHROMA_PORT}, Admin http://127.0.0.1:${CHROMA_ADMIN_PORT} (see .env)."
   fi
 }
 

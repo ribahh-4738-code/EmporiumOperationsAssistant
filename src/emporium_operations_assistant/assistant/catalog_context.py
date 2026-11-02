@@ -9,7 +9,7 @@ from emporium_operations_assistant.config import Settings, load_settings, postgr
 
 
 def build_catalog_context(settings: Settings | None = None) -> str:
-    """Summarize catalog and orders for the assistant (no ChromaDB yet)."""
+    """Summarize catalog and orders for the assistant."""
     settings = settings or load_settings()
     with psycopg.connect(**postgres_connection_kwargs(settings)) as conn:
         with conn.cursor(row_factory=dict_row) as cur:

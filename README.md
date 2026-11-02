@@ -16,20 +16,27 @@ Assistente conversacional para operações de um emporium de instrumentos musica
 - Variáveis de ambiente sensíveis e de infraestrutura ficam no arquivo **`.env`** (use [`.env.example`](.env.example) como modelo).
 - Textos da persona e prompts modulares ficam no **PostgreSQL** (`assistant_*`). No **`.env`**: provider/modelo LLM, nome exibido da atendente (`ASSISTANT_DISPLAY_NAME`), chaves de API.
 
-## Marco 4 (v0.4.0) — Chat CLI
+## Marco 5 (v0.5.0) — ChromaDB + políticas da loja
 
 **Entregue neste marco:**
 
+- ChromaDB em Docker (passos 11–12 do [`./install.sh`](install.sh), sem setup manual)
+- **ChromaDB Admin** (UI web no passo 11) para inspecionar coleções e documentos indexados
+- Ingestão do PDF [`data/políticas_da_loja.pdf`](data/políticas_da_loja.pdf) (parcelamento e demais políticas)
+- RAG na CLI: trechos relevantes entram no contexto da Maiara a cada pergunta (embeddings Gemini)
+- Se alterar o PDF: `./scripts/chroma/ingest_rag.sh` (ou `--force`).
+
+**Próximo marco (previsto):** novos documentos no manifesto RAG, refinamentos de persona.
+
+## Marco 4 (v0.4.0) — Chat CLI
+
 - CLI interativa (`emporium-chat` / [`scripts/chat.sh`](scripts/chat.sh))
 - `ChatService`: histórico no PostgreSQL, Gemini, resumo do catálogo em contexto
-- Carregamento automático do `.env` ao iniciar o chat
-
-**Próximo marco (previsto):** ChromaDB (busca semântica).
 
 ## Chat na linha de comando
 
-1. Conclua o [`./install.sh`](install.sh) (banco + persona Maiara).
-2. Edite `.env` e defina `GEMINI_API_KEY=...` (e ajuste `GEMINI_MODEL` se quiser).
+1. Conclua o [`./install.sh`](install.sh) (PostgreSQL + Chroma + ingestão do PDF de políticas).
+2. Edite `.env` e defina `GEMINI_API_KEY=...` (usada no chat e nos embeddings RAG).
 3. Inicie o chat:
 
 ```bash
@@ -40,7 +47,35 @@ Assistente conversacional para operações de um emporium de instrumentos musica
 
 Comandos na sessão: `/sair`, `/exit` ou Ctrl+D.
 
-Cada mensagem é gravada em `assistant_chat_message` com `channel=cli`. O assistente usa o `system_prompt` da Maiara no banco, prompts modulares, resumo de produtos/pedidos do PostgreSQL e as últimas `CHAT_HISTORY_LIMIT` mensagens (padrão 20).
+Cada mensagem é gravada em `assistant_chat_message` com `channel=cli`. O assistente usa o `system_prompt` da Maiara no banco, prompts modulares, resumo de produtos/pedidos do PostgreSQL, **trechos semânticos do PDF de políticas (ChromaDB)** e as últimas `CHAT_HISTORY_LIMIT` mensagens (padrão 20).
+
+Manifesto de arquivos: [`db/seed/rag_manifest.json`](db/seed/rag_manifest.json).
+
+### ChromaDB (API + Admin + RAG)
+
+| Serviço | URL padrão | Uso |
+|---------|------------|-----|
+| Chroma API | `http://localhost:8001` | Embeddings e coleção `store_policies` (app + ingest) |
+| **ChromaDB Admin** | `http://127.0.0.1:3001` | UI não oficial ([flanker/chromadb-admin](https://github.com/flanker/chromadb-admin)) — sobe no passo 11 do install |
+
+Na primeira tela do Admin, informe a URL do servidor Chroma:
+
+`http://host.docker.internal:8001`
+
+(ajuste a porta se `CHROMA_PORT` no `.env` for diferente). Tenant/database padrão costumam ser `default_tenant` / `default_database`. A coleção indexada pelo projeto é **`store_policies`**.
+
+**Atualizar o PDF de políticas:** se alterar o PDF: `./scripts/chroma/ingest_rag.sh` (ou `--force`).
+
+Na primeira execução do chat, se a coleção `store_policies` ainda não existir (por exemplo, ingest pulada no install sem `GEMINI_API_KEY`), o `./scripts/chat.sh` sobe o Chroma e **indexa o PDF automaticamente** antes da conversa.
+
+**Versões:** o pacote Python `chromadb` (1.5.x) exige a imagem Docker **`chromadb/chroma:1.5.9`** (não use `0.6.x`). O script `ensure_chroma_container.sh` recria o container se a imagem estiver desatualizada. Embeddings: `GEMINI_EMBEDDING_MODEL=gemini-embedding-001` (não `text-embedding-004`).
+
+Se ingest falhar após upgrade de imagem: `docker stop emporium_ops_chroma && docker rm emporium_ops_chroma`, depois `./scripts/chroma/ensure_chroma_container.sh` e `./scripts/chroma/ingest_rag.sh --force`.
+
+```bash
+./scripts/chroma/ingest_rag.sh
+./scripts/chroma/ingest_rag.sh --force   # reindex mesmo sem mudança de hash
+```
 
 ## Pré-requisitos
 
@@ -73,10 +108,12 @@ O instalador:
 4. Cria `.venv`, instala dependências e **importa os CSVs** (truncate + load)
 5. Verifica contagens de linhas contra [`db/seed/manifest.json`](db/seed/manifest.json)
 6. Garante profile/prompts do assistente (passo 10; **não** apaga `assistant_chat_message`)
+7. Sobe `emporium_ops_chroma` (API, porta **8001**) e `emporium_ops_chroma_admin` (UI, porta **3001**)
+8. Indexa PDFs listados em [`db/seed/rag_manifest.json`](db/seed/rag_manifest.json) no Chroma (reindex só se o arquivo mudar; se alterar o PDF, rode `./scripts/chroma/ingest_rag.sh` ou `--force`)
 
 Passos já satisfeitos aparecem como `[skip]`; passos executados como `[run]`.
 
-Conexão padrão após o install: `localhost:5435`, usuário/senha/banco conforme `.env`.
+Conexões padrão após o install: PostgreSQL `localhost:5435`, Chroma `localhost:8001`, Admin `http://127.0.0.1:3001` (ver `.env`).
 
 ### Dados de seed e truncate
 
@@ -105,7 +142,8 @@ Se a estrutura de um CSV mudar, atualize `manifest.json`, `schema.sql` e adicion
 Variáveis no `.env` (ver [`.env.example`](.env.example)):
 
 - `ASSISTANT_DISPLAY_NAME`, `ASSISTANT_PROFILE_NAME`
-- `LLM_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL` (padrão `gemini-3.6-flash` em `.env.example`)
+- `LLM_PROVIDER=gemini`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_EMBEDDING_MODEL`
+- Chroma: `CHROMA_HOST`, `CHROMA_PORT`, `CHROMA_COLLECTION`, `RAG_TOP_K`, `CHROMA_ADMIN_PORT`
 
 Teste opcional do adapter (requer chave):
 
@@ -153,9 +191,11 @@ EmporiumOperationsAssistant/
 │   ├── assistant/        # chat, repository, catalog context
 │   ├── cli/              # emporium-chat
 │   ├── llm/              # adapters (gemini, local stub)
+│   ├── rag/              # Chroma ingest + retrieval
 │   └── seed/             # CSV validate, import, verify
 └── scripts/
     ├── chat.sh               # inicia CLI
+    ├── chroma/               # container + ingest RAG
     ├── lib/
     │   ├── env.sh
     │   └── psql.sh

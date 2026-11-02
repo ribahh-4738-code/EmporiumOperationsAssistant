@@ -7,9 +7,28 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-02
+
+### Adicionado
+
+- ChromaDB via Docker (`scripts/chroma/ensure_chroma_container.sh`, passos 11–12 do [`install.sh`](install.sh))
+- **ChromaDB Admin** UI no install (`emporium_ops_chroma_admin`, porta 3001; imagem `fengzhichao/chromadb-admin`)
+- RAG: PDF [`data/políticas_da_loja.pdf`](data/políticas_da_loja.pdf), manifesto [`db/seed/rag_manifest.json`](db/seed/rag_manifest.json)
+- Contexto de políticas no `ChatService` (busca semântica por pergunta; embeddings Gemini)
+- Bootstrap RAG no chat (`ensure_policy_index`) e `scripts/chroma/ingest_rag.sh`
+- Dependências `chromadb` (~1.5.x), `pypdf`; variáveis `CHROMA_*`, `RAG_*`, `GEMINI_EMBEDDING_MODEL` em `.env.example`
+
+### Corrigido
+
+- **`KeyError('_type')` na ingestão RAG:** client Python `chromadb` 1.5.x incompatível com imagem Docker `chromadb/chroma:0.6.x` — servidor fixado em **`chromadb/chroma:1.5.9`**; script recria container se a versão da API for anterior à 1.x
+- **Embeddings:** `text-embedding-004` (404 na API atual) substituído por default **`gemini-embedding-001`**; vetores calculados no app e enviados ao Chroma (sem embedding function no servidor)
+- **Coleção ausente / alucinação em pagamento:** auto-index no `./scripts/chat.sh`; instruções quando o índice não está disponível; logs RAG ruidosos reduzidos a debug
+
 ### Alterado
 
-- Default `GEMINI_MODEL=gemini-3.6-flash` em `.env.example` e `config.py` (CLI only; WhatsApp removido do escopo)
+- README: Chroma Admin, reindex do PDF (`ingest_rag.sh` / `--force`), troubleshooting de versões
+- `./install.sh`: passo 12 indexa documentos RAG (idempotente por hash do arquivo)
+- Default `GEMINI_MODEL=gemini-3.6-flash` (mantido desde rollback WhatsApp)
 
 ## [0.4.0] - 2026-11-02
 
@@ -68,7 +87,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - `.gitignore` para Python, ambiente e ferramentas futuras
 - Script `scripts/db/create_database.sh` para criação idempotente do banco
 
-[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.4.0...HEAD
+[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.5.0...HEAD
+[0.5.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.1.1...v0.2.0

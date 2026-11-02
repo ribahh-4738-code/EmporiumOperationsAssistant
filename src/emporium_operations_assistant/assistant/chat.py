@@ -6,6 +6,8 @@ import logging
 import os
 
 from emporium_operations_assistant.assistant.catalog_context import build_catalog_context
+from emporium_operations_assistant.rag.bootstrap import ensure_policy_index
+from emporium_operations_assistant.rag.retrieval import build_policy_context
 from emporium_operations_assistant.assistant.repository import AssistantRepository
 from emporium_operations_assistant.assistant.service import AssistantService
 from emporium_operations_assistant.config import Settings, load_settings
@@ -23,15 +25,21 @@ class ChatService:
         self._assistant = AssistantService(self._settings)
         self._repo = AssistantRepository(self._settings)
         self._llm = get_llm_provider(self._settings)
+        try:
+            ensure_policy_index(self._settings, quiet=False)
+        except Exception:
+            logger.exception("Failed to bootstrap RAG policy index")
 
     @property
     def display_name(self) -> str:
         return self._assistant.build_prompt_context().display_name
 
-    def _system_instruction(self) -> str:
+    def _system_instruction(self, user_query: str) -> str:
         ctx = self._assistant.build_prompt_context()
         catalog = build_catalog_context(self._settings)
-        return f"{ctx.system_instruction}\n\n{catalog}"
+        policy = build_policy_context(user_query, self._settings)
+        sections = [ctx.system_instruction, catalog, policy]
+        return "\n\n".join(sections)
 
     def _history_turns(self, profile_id: int) -> list[ChatTurn]:
         stored = self._repo.list_recent_messages(
@@ -67,7 +75,7 @@ class ChatService:
         try:
             result = self._llm.complete(
                 messages,
-                system_instruction=self._system_instruction(),
+                system_instruction=self._system_instruction(user_text),
             )
             reply = result.text
             if not reply:

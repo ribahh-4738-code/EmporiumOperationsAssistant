@@ -1,4 +1,4 @@
-"""Conversation preparation (no public CLI loop in this milestone)."""
+"""Conversation preparation (system prompt and profile context)."""
 
 from __future__ import annotations
 

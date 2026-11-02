@@ -6,6 +6,8 @@ from google import genai
 from google.genai import types
 
 from emporium_operations_assistant.config import Settings
+from emporium_operations_assistant.llm.history import normalize_turns_for_llm
+from emporium_operations_assistant.llm.roles import ROLE_USER, to_llm_role
 from emporium_operations_assistant.llm.types import ChatTurn, CompletionResult
 
 
@@ -27,11 +29,18 @@ class GeminiAdapter:
         *,
         system_instruction: str | None = None,
     ) -> CompletionResult:
+        turns = normalize_turns_for_llm(messages)
+        if not turns:
+            turns = [ChatTurn(role=ROLE_USER, content="Olá")]
+
         contents: list[types.Content] = []
-        for turn in messages:
-            role = "user" if turn.role == "user" else "model"
+        for turn in turns:
+            api_role = to_llm_role(turn.role)
             contents.append(
-                types.Content(role=role, parts=[types.Part.from_text(text=turn.content)])
+                types.Content(
+                    role=api_role,
+                    parts=[types.Part.from_text(text=turn.content)],
+                )
             )
         config = types.GenerateContentConfig(
             temperature=self._settings.llm_temperature,

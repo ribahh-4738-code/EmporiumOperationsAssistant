@@ -160,5 +160,6 @@ CREATE INDEX IF NOT EXISTS idx_assistant_chat_message_profile_id ON assistant_ch
 CREATE INDEX IF NOT EXISTS idx_assistant_chat_message_created_at ON assistant_chat_message (created_at);
 
 COMMENT ON TABLE assistant_chat_message IS 'Persisted chat turns for audit and future semantic retrieval';
+COMMENT ON COLUMN assistant_chat_message.role IS 'user | model (Gemini turn roles)';
 
 COMMIT;

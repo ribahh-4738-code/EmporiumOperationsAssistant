@@ -7,7 +7,9 @@ from dataclasses import dataclass
 
 @dataclass(frozen=True)
 class ChatTurn:
-    role: str
+    """One turn in the conversation. Use roles ``user`` or ``model`` (Gemini)."""
+
+    role: str  # user | model
     content: str
 
 

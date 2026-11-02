@@ -29,6 +29,12 @@ class ModulePrompt:
     enabled: bool
 
 
+@dataclass(frozen=True)
+class StoredMessage:
+    role: str
+    message_text: str
+
+
 class AssistantRepository:
     def __init__(self, settings: Settings | None = None) -> None:
         self._settings = settings or load_settings()
@@ -99,6 +105,39 @@ class AssistantRepository:
                 message_id = cur.fetchone()[0]
             conn.commit()
         return int(message_id)
+
+    def list_recent_messages(
+        self,
+        profile_id: int,
+        *,
+        limit: int = 20,
+        channel: str | None = "cli",
+        exclude_error_messages: bool = True,
+    ) -> list[StoredMessage]:
+        query = """
+            SELECT role, message_text
+            FROM assistant_chat_message
+            WHERE profile_id = %s
+        """
+        params: list[Any] = [profile_id]
+        if channel is not None:
+            query += " AND channel = %s"
+            params.append(channel)
+        if exclude_error_messages:
+            query += """
+            AND COALESCE(metadata->>'error', 'false') NOT IN ('true', '1')
+            """
+        query += """
+            ORDER BY created_at DESC, id DESC
+            LIMIT %s
+        """
+        params.append(limit)
+        with self._connect() as conn:
+            with conn.cursor(row_factory=dict_row) as cur:
+                cur.execute(query, params)
+                rows = cur.fetchall()
+        rows.reverse()
+        return [StoredMessage(**row) for row in rows]
 
     def profile_seed_complete(self, profile_name: str, expected_module_keys: list[str]) -> bool:
         with self._connect() as conn:

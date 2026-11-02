@@ -1,6 +1,6 @@
 # Emporium Operations Assistant
 
-Assistente conversacional para operações de um emporium de instrumentos musicais. O sistema utiliza a persona **Maiara** e, nas fases futuras, responderá via **linha de comando** e **WhatsApp**.
+Assistente conversacional para operações de um emporium de instrumentos musicais. O sistema utiliza a persona **Maiara**, com **CLI** para testes e, em marco futuro, **WhatsApp**.
 
 ## Stack planejada
 
@@ -16,16 +16,31 @@ Assistente conversacional para operações de um emporium de instrumentos musica
 - Variáveis de ambiente sensíveis e de infraestrutura ficam no arquivo **`.env`** (use [`.env.example`](.env.example) como modelo).
 - Textos da persona e prompts modulares ficam no **PostgreSQL** (`assistant_*`). No **`.env`**: provider/modelo LLM, nome exibido da atendente (`ASSISTANT_DISPLAY_NAME`), chaves de API.
 
-## Marco 3 (v0.3.0) — Base conversacional
+## Marco 4 (v0.4.0) — Chat CLI
 
 **Entregue neste marco:**
 
-- Tabelas `assistant_profile`, `assistant_prompt`, `assistant_chat_message`
-- Seed idempotente da Maiara ([`db/seed/assistant/default.json`](db/seed/assistant/default.json))
-- Camada **multi-adapter** LLM (`LLMProvider`) com **Gemini** (`google-genai`)
-- Repositório + montagem de prompts (`AssistantService`) — sem CLI/WhatsApp ainda
+- CLI interativa (`emporium-chat` / [`scripts/chat.sh`](scripts/chat.sh))
+- `ChatService`: histórico no PostgreSQL, Gemini, resumo do catálogo em contexto
+- Carregamento automático do `.env` ao iniciar o chat
 
-**Próximo marco (previsto):** ChromaDB, CLI REPL, WhatsApp.
+**Próximo marco (previsto):** ChromaDB (busca semântica), WhatsApp.
+
+## Chat na linha de comando
+
+1. Conclua o [`./install.sh`](install.sh) (banco + persona Maiara).
+2. Edite `.env` e defina `GEMINI_API_KEY=...` (e ajuste `GEMINI_MODEL` se quiser).
+3. Inicie o chat:
+
+```bash
+./scripts/chat.sh
+# ou
+.venv/bin/emporium-chat
+```
+
+Comandos na sessão: `/sair`, `/exit` ou Ctrl+D.
+
+Cada mensagem é gravada em `assistant_chat_message` com `channel=cli`. O assistente usa o `system_prompt` da Maiara no banco, prompts modulares, resumo de produtos/pedidos do PostgreSQL e as últimas `CHAT_HISTORY_LIMIT` mensagens (padrão 20).
 
 ## Pré-requisitos
 
@@ -85,7 +100,7 @@ Se a estrutura de um CSV mudar, atualize `manifest.json`, `schema.sql` e adicion
 |--------|-----|
 | `assistant_profile` | Persona (`system_prompt`, timezone, `profile_name`) |
 | `assistant_prompt` | Prompts por `module_key` (ex. `reformulate_request`) |
-| `assistant_chat_message` | Auditoria de mensagens (`role`, `message_text`, `model`, `channel`) |
+| `assistant_chat_message` | Auditoria (`role`: `user` ou `model`, `message_text`, `model`, `channel`) |
 
 Variáveis no `.env` (ver [`.env.example`](.env.example)):
 
@@ -103,12 +118,6 @@ Smoke test sem API:
 
 ```bash
 DRY_RUN=1 .venv/bin/python -m emporium_operations_assistant.llm.adapters.gemini
-```
-
-Contexto de prompts (sem conversa interativa):
-
-```bash
-.venv/bin/python -c "from emporium_operations_assistant.assistant.service import AssistantService; print(AssistantService().build_prompt_context().system_instruction[:200])"
 ```
 
 Planos de marco locais (não versionados): pasta `MDs/` (ver `.gitignore`).
@@ -141,10 +150,12 @@ EmporiumOperationsAssistant/
 │   └── migrations/
 ├── src/emporium_operations_assistant/
 │   ├── config.py
-│   ├── assistant/        # repository, prompts, seed
+│   ├── assistant/        # chat, repository, catalog context
+│   ├── cli/              # emporium-chat
 │   ├── llm/              # adapters (gemini, local stub)
 │   └── seed/             # CSV validate, import, verify
 └── scripts/
+    ├── chat.sh               # inicia CLI
     ├── lib/
     │   ├── env.sh
     │   └── psql.sh

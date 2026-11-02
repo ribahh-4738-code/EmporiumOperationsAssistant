@@ -78,6 +78,11 @@ main() {
 
   log_step "Step 2: Environment file"
   write_default_env
+  if [[ "${DRY_RUN}" != "1" ]]; then
+    # shellcheck disable=SC1091
+    source "${ROOT_DIR}/scripts/lib/ensure_env_keys.sh"
+    ensure_env_keys "${ROOT_DIR}"
+  fi
 
   load_project_env "${ROOT_DIR}"
   apply_postgres_defaults

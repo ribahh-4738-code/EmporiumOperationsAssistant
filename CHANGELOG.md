@@ -7,6 +7,22 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-02
+
+### Adicionado
+
+- CLI interativa `emporium-chat` e [`scripts/chat.sh`](scripts/chat.sh)
+- `ChatService` com histórico persistido, contexto de catálogo PostgreSQL e Gemini
+- Leitura automática de `.env`; variáveis `CHAT_HISTORY_LIMIT` e `CHAT_CHANNEL`
+- `ensure_env_keys.sh` (sync de chaves ausentes do `.env.example` para `.env`)
+- Normalização de histórico Gemini (`llm/history.py`); `CHAT_DEBUG` para diagnóstico
+
+### Alterado
+
+- Papéis de chat alinhados ao Gemini: respostas gravadas como `model` (não `assistant`)
+- Migration `003_chat_message_role_model.sql` para histórico legado
+- Mensagens de erro não entram mais no contexto enviado ao LLM
+
 ## [0.3.0] - 2026-11-02
 
 ### Adicionado
@@ -48,7 +64,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - `.gitignore` para Python, ambiente e ferramentas futuras
 - Script `scripts/db/create_database.sh` para criação idempotente do banco
 
-[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.1.1...v0.2.0
 [0.1.1]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.1.0...v0.1.1

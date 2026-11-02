@@ -4,6 +4,27 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
+
+
+def project_root() -> Path:
+    return Path(__file__).resolve().parents[2]
+
+
+def load_dotenv_file(env_path: Path | None = None) -> None:
+    """Load KEY=VALUE pairs from .env into os.environ (does not override existing)."""
+    path = env_path or (project_root() / ".env")
+    if not path.is_file():
+        return
+    for raw_line in path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip().strip("\ufeff")
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if not os.environ.get(key):
+            os.environ[key] = value
 
 
 @dataclass(frozen=True)
@@ -19,10 +40,14 @@ class Settings:
     gemini_api_key: str
     gemini_model: str
     llm_temperature: float
+    chat_history_limit: int
+    chat_channel: str
 
 
-def load_settings() -> Settings:
+def load_settings(*, load_env_file: bool = True) -> Settings:
     """Load settings from environment variables (see .env.example)."""
+    if load_env_file:
+        load_dotenv_file()
     return Settings(
         postgres_host=os.environ.get("POSTGRES_HOST", "localhost"),
         postgres_port=int(os.environ.get("POSTGRES_PORT", "5435")),
@@ -35,6 +60,8 @@ def load_settings() -> Settings:
         gemini_api_key=os.environ.get("GEMINI_API_KEY", ""),
         gemini_model=os.environ.get("GEMINI_MODEL", "gemini-2.0-flash"),
         llm_temperature=float(os.environ.get("LLM_TEMPERATURE", "0.7")),
+        chat_history_limit=int(os.environ.get("CHAT_HISTORY_LIMIT", "20")),
+        chat_channel=os.environ.get("CHAT_CHANNEL", "cli"),
     )
 
 

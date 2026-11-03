@@ -49,6 +49,9 @@ class Settings:
     rag_chunk_size: int
     rag_chunk_overlap: int
     gemini_embedding_model: str
+    assistant_log_path: str
+    gemini_daily_token_budget: int
+    catalog_search_limit: int
 
 
 def load_settings(*, load_env_file: bool = True) -> Settings:
@@ -78,6 +81,9 @@ def load_settings(*, load_env_file: bool = True) -> Settings:
         gemini_embedding_model=os.environ.get(
             "GEMINI_EMBEDDING_MODEL", "gemini-embedding-001"
         ),
+        assistant_log_path=os.environ.get("ASSISTANT_LOG_PATH", ".run/assistant.jsonl"),
+        gemini_daily_token_budget=int(os.environ.get("GEMINI_DAILY_TOKEN_BUDGET", "0")),
+        catalog_search_limit=int(os.environ.get("CATALOG_SEARCH_LIMIT", "5")),
     )
 
 

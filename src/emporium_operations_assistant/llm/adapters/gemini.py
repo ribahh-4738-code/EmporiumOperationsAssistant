@@ -8,7 +8,26 @@ from google.genai import types
 from emporium_operations_assistant.config import Settings
 from emporium_operations_assistant.llm.history import normalize_turns_for_llm
 from emporium_operations_assistant.llm.roles import ROLE_USER, to_llm_role
-from emporium_operations_assistant.llm.types import ChatTurn, CompletionResult
+from emporium_operations_assistant.llm.types import ChatTurn, CompletionResult, TokenUsage
+from emporium_operations_assistant.observability.token_budget import record_gemini_usage
+
+
+def _parse_usage(response: object) -> TokenUsage | None:
+    meta = getattr(response, "usage_metadata", None)
+    if meta is None:
+        return None
+    prompt = int(getattr(meta, "prompt_token_count", 0) or 0)
+    completion = int(getattr(meta, "candidates_token_count", 0) or 0)
+    total = int(getattr(meta, "total_token_count", 0) or 0)
+    if total == 0:
+        total = prompt + completion
+    if total == 0 and prompt == 0 and completion == 0:
+        return None
+    return TokenUsage(
+        prompt_tokens=prompt,
+        completion_tokens=completion,
+        total_tokens=total,
+    )
 
 
 class GeminiAdapter:
@@ -52,7 +71,17 @@ class GeminiAdapter:
             config=config,
         )
         text = (response.text or "").strip()
-        return CompletionResult(text=text, model=self._model)
+        usage = _parse_usage(response)
+        if usage:
+            record_gemini_usage(
+                source="chat_completion",
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+                total_tokens=usage.total_tokens,
+                model=self._model,
+                settings=self._settings,
+            )
+        return CompletionResult(text=text, model=self._model, usage=usage)
 
 
 def main() -> None:

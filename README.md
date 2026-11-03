@@ -36,6 +36,20 @@ Itens **não** previstos nesta fase do protótipo (tempo / prioridade):
 | **Dashboard** | Alteração ou importação de dados via UI (hoje: CSVs + `./install.sh` / scripts `scripts/db/`) |
 | **WhatsApp (Meta Cloud API)** | Canal de atendimento oficial; rollback anterior — retomar só se fizer sentido |
 | **Modelo local treinado e/ou quantizado** | LLM on-prem; hoje `LLM_PROVIDER=gemini` com adapter stub local apenas para smoke test |
+| **Rotação de API keys** | Chave única em `.env`; sem vault, rotação automática ou multi-key |
+
+## Marco 6 (v0.6.0) — Observabilidade + catálogo inteligente
+
+- **[`./logs.sh`](logs.sh)** — em outro terminal, acompanha SQL/RAG/embeddings/Gemini (`--pretty` para leitura humana); arquivo padrão `.run/assistant.jsonl`
+- **[`./scripts/status.sh`](scripts/status.sh)** — healthcheck Postgres + Chroma + coleção `store_policies` + contagem de chunks
+- **Catálogo no prompt** — top-N produtos por palavras-chave da pergunta (SQL), além do resumo agregado e do RAG
+- **Tokens Gemini** — por turno no log; `GEMINI_DAILY_TOKEN_BUDGET` gera **aviso só no log** (chat continua)
+
+```bash
+./scripts/status.sh          # stack ok?
+./chat.sh                    # terminal 1
+./logs.sh --pretty           # terminal 2
+```
 
 ## Marco 5 (v0.5.0) — ChromaDB + políticas da loja
 
@@ -49,7 +63,7 @@ Itens **não** previstos nesta fase do protótipo (tempo / prioridade):
 
 ## Chat (`./chat.sh`)
 
-O assistente combina: `system_prompt` da Maiara, prompts modulares, resumo PostgreSQL, **trechos do PDF (ChromaDB)** e últimas `CHAT_HISTORY_LIMIT` mensagens (`channel=cli`).
+O assistente combina: `system_prompt` da Maiara, prompts modulares, resumo PostgreSQL, **produtos relacionados (SQL)**, **trechos do PDF (ChromaDB)** e últimas `CHAT_HISTORY_LIMIT` mensagens (`channel=cli`).
 
 Manifesto RAG: [`db/seed/rag_manifest.json`](db/seed/rag_manifest.json).
 
@@ -98,7 +112,9 @@ Conexões: PostgreSQL `localhost:5435`, Chroma `8001`, Admin `http://127.0.0.1:3
 
 | Script | Quando usar | Por quê |
 |--------|-------------|---------|
-| **[`./chat.sh`](chat.sh)** | Uso diário | Chat com a Maiara; garante container Chroma |
+| **[`./chat.sh`](chat.sh)** | Uso diário | Chat com a Maiara; garante container Chroma; grava log em `.run/` |
+| **[`./logs.sh`](logs.sh)** | Debug em paralelo | `tail -f` do JSONL (SQL, RAG, tokens) |
+| **[`./scripts/status.sh`](scripts/status.sh)** | Verificar stack | Postgres, Chroma, chunks indexados |
 | [`scripts/chroma/ingest_rag.sh`](scripts/chroma/ingest_rag.sh) | PDF de políticas alterado ou ingest falhou no install | Reindexa `store_policies` no Chroma |
 | [`scripts/chroma/ingest_rag.sh --force`](scripts/chroma/ingest_rag.sh) | Mesmo PDF, quer rebuild completo | Ignora hash e recria a coleção |
 | [`scripts/chroma/ensure_chroma_container.sh`](scripts/chroma/ensure_chroma_container.sh) | Docker reiniciado / Chroma parado | Sobe API Chroma 1.5.9 |
@@ -126,7 +142,7 @@ CSVs em [`data/`](data/) = export do sistema externo; cada `./install.sh` **subs
 | `assistant_prompt` | Prompts por `module_key` |
 | `assistant_chat_message` | Auditoria (`user` / `model`, `channel`) |
 
-Variáveis principais: `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_EMBEDDING_MODEL`, `CHROMA_*`, `RAG_*` — ver [`.env.example`](.env.example).
+Variáveis principais: `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_EMBEDDING_MODEL`, `CHROMA_*`, `RAG_*`, `ASSISTANT_LOG_PATH`, `GEMINI_DAILY_TOKEN_BUDGET`, `CATALOG_SEARCH_LIMIT` — ver [`.env.example`](.env.example).
 
 Teste Gemini (opcional):
 
@@ -143,12 +159,13 @@ Ajuste `.env` e execute em ordem: `scripts/db/create_database.sh`, `apply_schema
 ```
 EmporiumOperationsAssistant/
 ├── install.sh
-├── chat.sh                 # inicia CLI (preferido)
-├── data/                   # CSVs + políticas_da_loja.pdf
-├── db/seed/rag_manifest.json
+├── chat.sh
+├── logs.sh
+├── data/
 ├── src/emporium_operations_assistant/
-│   ├── assistant/  cli/  llm/  rag/  seed/
+│   ├── assistant/  cli/  llm/  observability/  rag/  seed/
 └── scripts/
+    ├── status.sh
     ├── chat.sh             # redireciona para ./chat.sh
     ├── chroma/
     └── db/

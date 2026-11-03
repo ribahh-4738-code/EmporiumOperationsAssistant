@@ -18,6 +18,9 @@ venv/
 chroma_data/
 .chroma/
 
+# Local runtime (logs, token counters)
+.run/
+
 # IDE
 .idea/
 .vscode/

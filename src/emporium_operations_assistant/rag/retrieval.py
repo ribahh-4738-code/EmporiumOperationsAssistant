@@ -7,6 +7,7 @@ import logging
 from emporium_operations_assistant.config import Settings, load_settings
 from emporium_operations_assistant.rag.bootstrap import policy_collection_exists
 from emporium_operations_assistant.rag.client import get_policy_collection
+from emporium_operations_assistant.observability.events import emit_event
 from emporium_operations_assistant.rag.embeddings import embed_texts
 
 logger = logging.getLogger(__name__)
@@ -46,10 +47,19 @@ def search_policy_chunks(query: str, settings: Settings | None = None) -> list[s
         return []
 
     documents = result.get("documents") or [[]]
+    distances = (result.get("distances") or [[]])[0]
     chunks: list[str] = []
     for text in documents[0]:
         if text and text.strip():
             chunks.append(text.strip())
+    emit_event(
+        "rag",
+        collection=settings.chroma_collection,
+        query_preview=query[:120],
+        n_chunks=len(chunks),
+        top_k=settings.rag_top_k,
+        distances=distances[: len(chunks)] if distances else [],
+    )
     return chunks
 
 

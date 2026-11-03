@@ -7,10 +7,21 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-03
+
+### Adicionado
+
+- [`logs.sh`](logs.sh) — JSONL estruturado (SQL catálogo, RAG, embeddings, tokens Gemini); modo `--pretty`
+- [`scripts/status.sh`](scripts/status.sh) — healthcheck Postgres, Chroma, coleção `store_policies`, chunk count
+- Módulo `observability/` (eventos, teto diário de tokens com aviso só no log, contador em `.run/`)
+- Busca de produtos por keywords da pergunta ([`catalog_search.py`](src/emporium_operations_assistant/assistant/catalog_search.py))
+- Uso Gemini em `assistant_chat_message.metadata` quando disponível
+
 ### Alterado
 
-- [`./chat.sh`](chat.sh) na raiz do repositório; `scripts/chat.sh` redireciona
-- README: início rápido, scripts pós-install, itens fora de escopo (dashboard, WhatsApp Meta, LLM local)
+- [`build_catalog_context`](src/emporium_operations_assistant/assistant/catalog_context.py) recebe `user_query` para top-N produtos (`CATALOG_SEARCH_LIMIT`)
+- [`./chat.sh`](chat.sh) define `ASSISTANT_LOG_PATH` e cria `.run/`
+- README: Marco 6, rotação de API keys em “fora do escopo”
 
 ## [0.5.0] - 2026-11-02
 
@@ -92,7 +103,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - `.gitignore` para Python, ambiente e ferramentas futuras
 - Script `scripts/db/create_database.sh` para criação idempotente do banco
 
-[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.6.0...HEAD
+[0.6.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.2.0...v0.3.0

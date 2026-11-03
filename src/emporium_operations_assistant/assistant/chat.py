@@ -36,7 +36,7 @@ class ChatService:
 
     def _system_instruction(self, user_query: str) -> str:
         ctx = self._assistant.build_prompt_context()
-        catalog = build_catalog_context(self._settings)
+        catalog = build_catalog_context(self._settings, user_query=user_query)
         policy = build_policy_context(user_query, self._settings)
         sections = [ctx.system_instruction, catalog, policy]
         return "\n\n".join(sections)
@@ -101,11 +101,19 @@ class ChatService:
             )
             return reply
 
+        meta: dict[str, object] = {}
+        if result.usage:
+            meta["usage"] = {
+                "prompt_tokens": result.usage.prompt_tokens,
+                "completion_tokens": result.usage.completion_tokens,
+                "total_tokens": result.usage.total_tokens,
+            }
         self._repo.append_message(
             profile_id,
             to_storage_role("model"),
             reply,
             model=result.model,
             channel=channel,
+            metadata=meta or None,
         )
         return reply

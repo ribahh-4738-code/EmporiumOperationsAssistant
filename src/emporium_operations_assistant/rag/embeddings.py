@@ -5,6 +5,7 @@ from __future__ import annotations
 from google import genai
 
 from emporium_operations_assistant.config import Settings, load_settings
+from emporium_operations_assistant.observability.events import emit_event
 
 
 def _gemini_client(settings: Settings) -> genai.Client:
@@ -29,4 +30,22 @@ def embed_texts(texts: list[str], settings: Settings | None = None) -> list[list
         if values is None:
             raise RuntimeError("Gemini embedding values missing.")
         vectors.append(list(values))
+        meta = getattr(response, "usage_metadata", None)
+        total = int(getattr(meta, "total_token_count", 0) or 0) if meta else 0
+        emit_event(
+            "embedding",
+            model=model,
+            n_texts=1,
+            text_len=len(text),
+            total_tokens=total or None,
+        )
+        if total:
+            from emporium_operations_assistant.observability.token_budget import record_gemini_usage
+
+            record_gemini_usage(
+                source="embedding",
+                total_tokens=total,
+                model=model,
+                settings=settings,
+            )
     return vectors

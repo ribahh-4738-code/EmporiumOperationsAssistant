@@ -14,6 +14,14 @@ class ChatTurn:
 
 
 @dataclass(frozen=True)
+class TokenUsage:
+    prompt_tokens: int
+    completion_tokens: int
+    total_tokens: int
+
+
+@dataclass(frozen=True)
 class CompletionResult:
     text: str
     model: str
+    usage: TokenUsage | None = None

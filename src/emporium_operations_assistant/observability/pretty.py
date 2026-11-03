@@ -23,9 +23,16 @@ def _format_line(raw: str) -> str:
         prefix += f" ({level})"
 
     if kind == "sql":
+        extra = ""
+        if ev.get("order_id") is not None:
+            extra += f" order_id={ev.get('order_id')}"
+        if ev.get("customer_id") is not None:
+            extra += f" customer_id={ev.get('customer_id')}"
+        if ev.get("email"):
+            extra += f" email={ev.get('email')!r}"
         return (
             f"{prefix} rows={ev.get('row_count', 0)} limit={ev.get('limit', '?')} "
-            f"keywords={ev.get('keywords', [])}\n  {ev.get('sql_summary', '')}"
+            f"keywords={ev.get('keywords', [])}{extra}\n  {ev.get('sql_summary', '')}"
         )
     if kind == "rag":
         return (

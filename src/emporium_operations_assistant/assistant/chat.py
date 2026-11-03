@@ -6,6 +6,7 @@ import logging
 import os
 
 from emporium_operations_assistant.assistant.catalog_context import build_catalog_context
+from emporium_operations_assistant.assistant.order_context import build_order_context
 from emporium_operations_assistant.rag.bootstrap import ensure_policy_index
 from emporium_operations_assistant.rag.retrieval import build_policy_context
 from emporium_operations_assistant.assistant.repository import AssistantRepository
@@ -20,8 +21,18 @@ logger = logging.getLogger(__name__)
 
 
 class ChatService:
-    def __init__(self, settings: Settings | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings | None = None,
+        *,
+        session_customer_id: int | None = None,
+    ) -> None:
         self._settings = settings or load_settings()
+        self._session_customer_id = (
+            session_customer_id
+            if session_customer_id is not None
+            else self._settings.chat_customer_id
+        )
         self._assistant = AssistantService(self._settings)
         self._repo = AssistantRepository(self._settings)
         self._llm = get_llm_provider(self._settings)
@@ -34,11 +45,27 @@ class ChatService:
     def display_name(self) -> str:
         return self._assistant.build_prompt_context().display_name
 
+    @property
+    def session_customer_id(self) -> int | None:
+        return self._session_customer_id
+
+    @session_customer_id.setter
+    def session_customer_id(self, value: int | None) -> None:
+        self._session_customer_id = value
+
     def _system_instruction(self, user_query: str) -> str:
         ctx = self._assistant.build_prompt_context()
         catalog = build_catalog_context(self._settings, user_query=user_query)
+        orders = build_order_context(
+            self._settings,
+            user_query=user_query,
+            session_customer_id=self._session_customer_id,
+        )
         policy = build_policy_context(user_query, self._settings)
-        sections = [ctx.system_instruction, catalog, policy]
+        sections = [ctx.system_instruction, catalog]
+        if orders:
+            sections.append(orders)
+        sections.append(policy)
         return "\n\n".join(sections)
 
     def _history_turns(self, profile_id: int) -> list[ChatTurn]:

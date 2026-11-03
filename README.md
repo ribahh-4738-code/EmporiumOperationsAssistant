@@ -16,7 +16,7 @@ chmod +x install.sh chat.sh
 ./chat.sh
 ```
 
-Comandos na sessão: `/sair`, `/exit` ou Ctrl+D.
+Comandos na sessão: `/sair`, `/exit` ou Ctrl+D; `/cliente <id>` ou `/cliente` (contexto de pedidos — ver Marco 7).
 
 ## Stack
 
@@ -37,6 +37,52 @@ Itens **não** previstos nesta fase do protótipo (tempo / prioridade):
 | **WhatsApp (Meta Cloud API)** | Canal de atendimento oficial; rollback anterior — retomar só se fizer sentido |
 | **Modelo local treinado e/ou quantizado** | LLM on-prem; hoje `LLM_PROVIDER=gemini` com adapter stub local apenas para smoke test |
 | **Rotação de API keys** | Chave única em `.env`; sem vault, rotação automática ou multi-key |
+| **Busca de pedidos por nome** | Só **nº do pedido** e **e-mail** (e sessão CLI); homônimos ficam fora deste protótipo |
+| **Login / OTP em pedidos** | Quem souber e-mail ou nº do pedido vê dados no CLI — não é canal autenticado |
+
+## Marco 7 (v0.7.0) — Consulta de pedidos
+
+A Maiara inclui **pedidos reais do PostgreSQL** no contexto quando você informa:
+
+| Forma | Exemplo |
+|--------|---------|
+| **Número do pedido** na mensagem | “Quero saber do **pedido 8**” |
+| **E-mail cadastrado** na mensagem | “Gostaria de saber o status do meu pedido, meu e-mail é **rafael.pereira@jmail.com**” |
+| **Sessão CLI** (opcional) | `./chat.sh --customer-id 2` ou `CHAT_CUSTOMER_ID` no `.env`; na sessão: `/cliente 2` ou `/cliente` para limpar |
+
+**Não há busca por nome completo** (evita ambiguidade). O nome do cliente pode aparecer no bloco depois que o pedido ou e-mail foi identificado.
+
+```bash
+./chat.sh
+./chat.sh --customer-id 2
+```
+
+### Exemplos de perguntas (copie no chat)
+
+Use dados do seed em [`data/customers.csv`](data/customers.csv) e [`data/orders.csv`](data/orders.csv).
+
+**Pedidos (e-mail ou número do pedido)**
+
+- Gostaria de saber o status do meu pedido, meu e-mail é **rafael.pereira@jmail.com**
+- Quero saber do **pedido 8** — qual o rastreio?
+- Meu e-mail é **lucas.mendes@jmail.com**, quais são meus pedidos?
+
+**Pedidos (sessão CLI)** — após `./chat.sh --customer-id 2`:
+
+- Qual o status do meu pedido?
+- Onde está meu rastreio?
+
+**Catálogo**
+
+- Vocês têm **violão Yamaha** disponível?
+- Qual o preço de uma **bateria**?
+
+**Políticas da loja (RAG no PDF)**
+
+- Quais **formas de pagamento** vocês aceitam?
+- Como funciona o **parcelamento**?
+
+Limites: `ORDER_CONTEXT_LIMIT` (pedidos listados por cliente), `ORDER_DETAIL_MAX_ITEMS` (itens por pedido) — [`.env.example`](.env.example).
 
 ## Marco 6 (v0.6.0) — Observabilidade + catálogo inteligente
 
@@ -63,7 +109,7 @@ Itens **não** previstos nesta fase do protótipo (tempo / prioridade):
 
 ## Chat (`./chat.sh`)
 
-O assistente combina: `system_prompt` da Maiara, prompts modulares, resumo PostgreSQL, **produtos relacionados (SQL)**, **trechos do PDF (ChromaDB)** e últimas `CHAT_HISTORY_LIMIT` mensagens (`channel=cli`).
+O assistente combina: `system_prompt` da Maiara, prompts modulares, resumo PostgreSQL, **produtos relacionados (SQL)**, **pedidos (nº do pedido, e-mail ou sessão CLI)**, **trechos do PDF (ChromaDB)** e últimas `CHAT_HISTORY_LIMIT` mensagens (`channel=cli`).
 
 Manifesto RAG: [`db/seed/rag_manifest.json`](db/seed/rag_manifest.json).
 
@@ -142,7 +188,7 @@ CSVs em [`data/`](data/) = export do sistema externo; cada `./install.sh` **subs
 | `assistant_prompt` | Prompts por `module_key` |
 | `assistant_chat_message` | Auditoria (`user` / `model`, `channel`) |
 
-Variáveis principais: `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_EMBEDDING_MODEL`, `CHROMA_*`, `RAG_*`, `ASSISTANT_LOG_PATH`, `GEMINI_DAILY_TOKEN_BUDGET`, `CATALOG_SEARCH_LIMIT` — ver [`.env.example`](.env.example).
+Variáveis principais: `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_EMBEDDING_MODEL`, `CHROMA_*`, `RAG_*`, `ASSISTANT_LOG_PATH`, `GEMINI_DAILY_TOKEN_BUDGET`, `CATALOG_SEARCH_LIMIT`, `CHAT_CUSTOMER_ID`, `ORDER_CONTEXT_LIMIT` — ver [`.env.example`](.env.example).
 
 Teste Gemini (opcional):
 

@@ -81,7 +81,7 @@ def build_catalog_context(
             lines.extend(_format_product_hits(hits))
 
     lines.append(
-        "Use esses dados quando o cliente perguntar sobre catálogo, pedidos ou promoções. "
-        "Se precisar de detalhe que não estiver aqui, seja honesta e sugira reformular ou falar com a loja."
+        "Use esses dados para catálogo e promoções. Detalhes de pedidos vêm em bloco separado "
+        "(número do pedido, e-mail ou sessão CLI)."
     )
     return "\n".join(lines)

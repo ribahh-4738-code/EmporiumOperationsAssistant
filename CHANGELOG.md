@@ -7,6 +7,19 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-03
+
+### Adicionado
+
+- Contexto de **pedidos reais** no prompt ([`order_context.py`](src/emporium_operations_assistant/assistant/order_context.py)): consulta por **número do pedido** ou **e-mail cadastrado** na mensagem
+- Sessão CLI opcional: `./chat.sh --customer-id N`, `CHAT_CUSTOMER_ID`, comandos `/cliente <id>` e `/cliente` (limpar)
+- Variáveis `ORDER_CONTEXT_LIMIT`, `ORDER_DETAIL_MAX_ITEMS`
+
+### Alterado
+
+- README: consulta de pedidos (sem busca por nome), exemplos de perguntas (pedidos, catálogo, políticas); protótipo sem login documentado
+- Eventos `sql` de pedidos visíveis em [`logs.sh --pretty`](logs.sh)
+
 ## [0.6.0] - 2026-11-03
 
 ### Adicionado
@@ -103,7 +116,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - `.gitignore` para Python, ambiente e ferramentas futuras
 - Script `scripts/db/create_database.sh` para criação idempotente do banco
 
-[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.6.0...HEAD
+[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.7.0...HEAD
+[0.7.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.3.0...v0.4.0

@@ -52,6 +52,16 @@ class Settings:
     assistant_log_path: str
     gemini_daily_token_budget: int
     catalog_search_limit: int
+    chat_customer_id: int | None
+    order_context_limit: int
+    order_detail_max_items: int
+
+
+def _optional_int(env_key: str) -> int | None:
+    raw = os.environ.get(env_key, "").strip()
+    if not raw:
+        return None
+    return int(raw)
 
 
 def load_settings(*, load_env_file: bool = True) -> Settings:
@@ -84,6 +94,9 @@ def load_settings(*, load_env_file: bool = True) -> Settings:
         assistant_log_path=os.environ.get("ASSISTANT_LOG_PATH", ".run/assistant.jsonl"),
         gemini_daily_token_budget=int(os.environ.get("GEMINI_DAILY_TOKEN_BUDGET", "0")),
         catalog_search_limit=int(os.environ.get("CATALOG_SEARCH_LIMIT", "5")),
+        chat_customer_id=_optional_int("CHAT_CUSTOMER_ID"),
+        order_context_limit=int(os.environ.get("ORDER_CONTEXT_LIMIT", "5")),
+        order_detail_max_items=int(os.environ.get("ORDER_DETAIL_MAX_ITEMS", "20")),
     )
 
 

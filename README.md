@@ -25,11 +25,13 @@ Ela distingue **dados operacionais** (SQL) de **regras** (RAG) e recusa pergunta
 4. **`./chat.sh`** — conversa com a Maiara.
 
 ```bash
-chmod +x install.sh chat.sh
+chmod +x install.sh chat.sh stop.sh
 ./install.sh
 # editar .env → GEMINI_API_KEY=...
 ./chat.sh
 ```
+
+**Teste em pasta limpa (outro clone na mesma máquina):** na cópia antiga rode **`./stop.sh`** para liberar portas **5435 / 8001 / `CHROMA_ADMIN_PORT`** e remover os containers do projeto (`emporium_ops_*`). Nomes de container e volumes Docker são **globais** — dois clones com o mesmo `.env` **compartilham** a mesma stack; para isolar, use nomes/portas distintos no `.env`. DB/Chroma no Docker só zeram com **`./stop.sh --purge-volumes`** (depois `./install.sh` de novo).
 
 Comandos na sessão: `/sair`, `/exit` ou Ctrl+D; `/cliente <id>` ou `/cliente` (contexto de pedidos — ver Marco 7).
 
@@ -67,7 +69,7 @@ Testes (opcional): `.venv/bin/pip install -e ".[dev]"` e `./scripts/test.sh`.
 
 Este repositório foi desenvolvido com **Cursor** (Agent + planos incrementais):
 
-- Marcos versionados (`v0.1.0` … `v0.9.1`) com commits e tags reais.
+- Marcos versionados (`v0.1.0` … `v0.9.2`) com commits e tags reais.
 - Planos locais em `MDs/` (gitignored) para alinhar escopo antes de codar.
 - A IA gerou boilerplate, testes pytest, scripts bash e docs; **revisão humana** em schema, prompts, seed e exemplos de entrega.
 - Testes (`./scripts/test.sh`) e smoke manual (`./chat.sh`) antes de release.
@@ -307,6 +309,7 @@ Para **forçar** recriação só do Admin: `docker rm -f emporium_ops_chroma_adm
 
 | Script | Quando usar | Por quê |
 |--------|-------------|---------|
+| **[`./stop.sh`](stop.sh)** | Antes de novo clone/install na mesma máquina | Para e remove containers Emporium (Postgres, Chroma, Admin); **`--purge-volumes`** apaga volumes Docker do projeto |
 | **[`./chat.sh`](chat.sh)** | Uso diário | Chat com a Maiara; garante container Chroma; grava log em `.run/` |
 | **[`./logs.sh`](logs.sh)** | Debug em paralelo | `tail -f` do JSONL (SQL, RAG, tokens) |
 | **[`./scripts/status.sh`](scripts/status.sh)** | Verificar stack | Postgres, Chroma, chunks indexados |
@@ -359,6 +362,7 @@ Ajuste `.env` e execute em ordem: `scripts/db/create_database.sh`, `apply_schema
 EmporiumOperationsAssistant/
 ├── install.sh
 ├── chat.sh
+├── stop.sh
 ├── logs.sh
 ├── delivery/examples/      # transcripts de entrega (desafio)
 ├── tests/                  # pytest (unit + integration leve)
@@ -370,6 +374,7 @@ EmporiumOperationsAssistant/
 └── scripts/
     ├── test.sh
     ├── status.sh
+    ├── docker/             # stop_project_containers.sh
     ├── chroma/
     └── db/
 ```
@@ -385,4 +390,4 @@ Planos locais: pasta `MDs/` (gitignored).
 
 ## Histórico de versões
 
-Evolução por marcos (detalhes no [CHANGELOG.md](CHANGELOG.md)): v0.1 schema → v0.2 CSV → v0.3–4 chat Gemini → v0.5 RAG → v0.6 observabilidade → v0.7 pedidos → v0.8 pytest → v0.9 entrega Artefact → **v0.9.1 fix ChromaDB Admin (API v2)**.
+Evolução por marcos (detalhes no [CHANGELOG.md](CHANGELOG.md)): v0.1 schema → v0.2 CSV → v0.3–4 chat Gemini → v0.5 RAG → v0.6 observabilidade → v0.7 pedidos → v0.8 pytest → v0.9 entrega Artefact → v0.9.1 Admin Chroma → **v0.9.2 `stop.sh`**.

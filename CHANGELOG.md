@@ -7,6 +7,13 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.9.2] - 2026-11-03
+
+### Adicionado
+
+- [`stop.sh`](stop.sh) e [`scripts/docker/stop_project_containers.sh`](scripts/docker/stop_project_containers.sh) — para containers Emporium (Postgres, Chroma, Admin); `--dry-run`, `--purge-volumes`
+- README: teste em pasta limpa, conflito de portas/nomes Docker
+
 ## [0.9.1] - 2026-11-03
 
 ### Corrigido

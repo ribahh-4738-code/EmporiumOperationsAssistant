@@ -25,6 +25,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 def _print_banner(display_name: str, session_customer_id: int | None) -> None:
     print()
     print(f"=== Emporium Operations Assistant — {display_name} ===")
+    print("Empório da Música · Campo Grande/MS")
     print("Digite sua mensagem e pressione Enter.")
     print("Comandos: /sair ou /exit — encerrar")
     if session_customer_id is not None:

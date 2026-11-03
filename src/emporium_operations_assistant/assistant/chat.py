@@ -7,6 +7,7 @@ import os
 
 from emporium_operations_assistant.assistant.catalog_context import build_catalog_context
 from emporium_operations_assistant.assistant.order_context import build_order_context
+from emporium_operations_assistant.assistant.store_context import build_store_context
 from emporium_operations_assistant.rag.bootstrap import ensure_policy_index
 from emporium_operations_assistant.rag.retrieval import build_policy_context
 from emporium_operations_assistant.assistant.repository import AssistantRepository
@@ -61,8 +62,9 @@ class ChatService:
             user_query=user_query,
             session_customer_id=self._session_customer_id,
         )
+        store = build_store_context()
         policy = build_policy_context(user_query, self._settings)
-        sections = [ctx.system_instruction, catalog]
+        sections = [ctx.system_instruction, store, catalog]
         if orders:
             sections.append(orders)
         sections.append(policy)

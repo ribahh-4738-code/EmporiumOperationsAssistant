@@ -7,6 +7,20 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-03
+
+### Adicionado
+
+- Entrega desafio Artefact: [`delivery/examples/`](delivery/examples/) (5 conversas)
+- Bloco [`store_context`](src/emporium_operations_assistant/assistant/store_context.py) (PDF §1.2 endereço/contato, §2 horários)
+- Filtro de preço máximo no catálogo (`extract_max_price_brl` em [`catalog_search.py`](src/emporium_operations_assistant/assistant/catalog_search.py))
+- Migration [`006_update_maiara_delivery_prompt.sql`](db/migrations/006_update_maiara_delivery_prompt.sql) e módulo `out_of_scope`
+
+### Alterado
+
+- Persona **Empório da Música** em [`default.json`](db/seed/assistant/default.json)
+- README: decisões técnicas, limitações, uso de IA, índice de exemplos
+
 ## [0.8.0] - 2026-11-03
 
 ### Adicionado
@@ -126,7 +140,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - `.gitignore` para Python, ambiente e ferramentas futuras
 - Script `scripts/db/create_database.sh` para criação idempotente do banco
 
-[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.8.0...v0.9.0
 [0.8.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.5.0...v0.6.0

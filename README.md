@@ -1,6 +1,21 @@
 # Emporium Operations Assistant
 
-Assistente conversacional para operações de um emporium de instrumentos musicais. O sistema utiliza a persona **Maiara**, com **CLI** para testes.
+Protótipo de agente de atendimento para a **Empório da Música** (loja fictícia de instrumentos em Campo Grande/MS). Persona **Maiara**, interface **CLI** (`./chat.sh`).
+
+**Repositório público:** [github.com/ribahh-4738-code/EmporiumOperationsAssistant](https://github.com/ribahh-4738-code/EmporiumOperationsAssistant)
+
+## Sobre o agente
+
+A Maiara responde com base em contexto injetado a cada turno:
+
+| Fonte | Uso |
+|--------|-----|
+| **PostgreSQL** (`data/*.csv`) | Catálogo (produtos, preços, estoque), pedidos, promoções |
+| **Bloco fixo da loja** | Endereço e contato (**§1.2**) e horários (**§2**) de [`data/políticas_da_loja.pdf`](data/políticas_da_loja.pdf) — injetado sempre; RAG complementa o restante do manual |
+| **ChromaDB + PDF** | Políticas: pagamento, trocas, devoluções, prazos |
+| **Histórico** | Últimas mensagens em `assistant_chat_message` |
+
+Ela distingue **dados operacionais** (SQL) de **regras** (RAG) e recusa perguntas fora do escopo da loja (módulo `out_of_scope`).
 
 ## Início rápido
 
@@ -17,6 +32,61 @@ chmod +x install.sh chat.sh
 ```
 
 Comandos na sessão: `/sair`, `/exit` ou Ctrl+D; `/cliente <id>` ou `/cliente` (contexto de pedidos — ver Marco 7).
+
+Após `./install.sh`, a migration **006** atualiza o `system_prompt` da Maiara. Instalações antigas também podem rodar:
+
+```bash
+.venv/bin/python -m emporium_operations_assistant.assistant.seed_defaults --force-profile
+```
+
+Testes (opcional): `.venv/bin/pip install -e ".[dev]"` e `./scripts/test.sh`.
+
+## Decisões técnicas
+
+| Decisão | Escolha | Justificativa |
+|---------|---------|---------------|
+| **Abordagem do agente** | Híbrido **RAG + SQL context injection** | Políticas em linguagem natural no PDF → embeddings + busca semântica; catálogo/pedidos tabulares → SQL parametrizado por turno. Sem ReAct/function calling formal: menor complexidade e custo previsível no protótipo. |
+| **LLM** | **Google Gemini** (`gemini-3.6-flash` chat, `gemini-embedding-001` RAG) | API estável, bom PT-BR, embeddings no mesmo provedor. |
+| **Interface** | **CLI** | Foco no agente; WhatsApp (Meta) ficou fora do escopo após spike. |
+| **Persistência** | PostgreSQL (`assistant_chat_message`) | Auditoria e continuidade da conversa por `channel=cli`. |
+| **Dados** | CSV seed + truncate no `./install.sh`; PDF versionado | Réplica local do “sistema externo”; políticas indexadas no Chroma. |
+| **Catálogo na pergunta** | Keywords + filtro **até R$ X** quando o cliente menciona teto de preço | Atende consultas tipo “violões até R$1000” sem expor SQL ao modelo. |
+| **Pedidos** | Nº do pedido, e-mail ou `--customer-id` | Evita ambiguidade de homônimos; protótipo sem OTP. |
+
+## Limitações conhecidas
+
+- Sem autenticação de cliente no CLI (e-mail ou nº do pedido expõe dados — aceitável só em demo).
+- Busca de catálogo: top-N por keywords, não é busca full-text avançada nem recomendação ML.
+- RAG depende de ingest do PDF e da qualidade do chunk; perguntas vagas podem não retornar trecho.
+- Gemini exige `GEMINI_API_KEY` e rede; custo por token (observável em `./logs.sh --pretty`).
+- WhatsApp, UI web, function calling nativo e modelo local não implementados.
+
+**Com mais tempo:** autenticação (OTP), tools Gemini para SQL/RAG sob demanda, canal WhatsApp, filtros de catálogo mais ricos, avaliação offline (RAGAS), cache de embeddings.
+
+## Uso de assistentes de IA (workflow)
+
+Este repositório foi desenvolvido com **Cursor** (Agent + planos incrementais):
+
+- Marcos versionados (`v0.1.0` … `v0.9.0`) com commits e tags reais.
+- Planos locais em `MDs/` (gitignored) para alinhar escopo antes de codar.
+- A IA gerou boilerplate, testes pytest, scripts bash e docs; **revisão humana** em schema, prompts, seed e exemplos de entrega.
+- Testes (`./scripts/test.sh`) e smoke manual (`./chat.sh`) antes de release.
+
+Ferramentas como Copilot/Claude poderiam substituir parte do fluxo; o critério foi **decisões documentadas** e código executável, não código gerado sem validação.
+
+## Exemplos de interação (entrega)
+
+Transcripts de referência (cenários do desafio técnico), em [`delivery/examples/`](delivery/examples/):
+
+| Arquivo | Cenário |
+|---------|---------|
+| [01_violoes_ate_1000.md](delivery/examples/01_violoes_ate_1000.md) | Catálogo + filtro de preço |
+| [02_endereco_loja.md](delivery/examples/02_endereco_loja.md) | Endereço e horários |
+| [03_preco_takamine_gd20.md](delivery/examples/03_preco_takamine_gd20.md) | Preço de produto |
+| [04_devolucao_arrependimento.md](delivery/examples/04_devolucao_arrependimento.md) | Política de devolução (RAG) |
+| [05_status_pedido_email.md](delivery/examples/05_status_pedido_email.md) | Status de pedido por e-mail |
+
+Reproduza com `./chat.sh` usando as mesmas perguntas; respostas exatas podem variar levemente com o modelo.
 
 ## Stack
 
@@ -67,7 +137,7 @@ O projeto usa **pytest**. As dependências de desenvolvimento **não** entram no
 |---------|------|
 | `test_chunking.py` | Divisão de texto para RAG (`chunk_text`) |
 | `test_order_lookup.py` | Extração de **nº do pedido** e **e-mail** (frases do Marco 7) |
-| `test_catalog_search.py` | Keywords de catálogo (stopwords PT) |
+| `test_catalog_search.py` | Keywords de catálogo e filtro **até R$ X** |
 | `test_llm_history.py` | Regras Gemini: turnos `user`/`model` alternados |
 | `test_order_context_format.py` | Texto do bloco de pedidos (SQL mockado) |
 | `test_observability.py` | JSONL em path temporário + contador diário de tokens |
@@ -134,8 +204,9 @@ Use dados do seed em [`data/customers.csv`](data/customers.csv) e [`data/orders.
 
 **Catálogo**
 
+- Quais opções de **violões** disponíveis custando **até R$1000**?
 - Vocês têm **violão Yamaha** disponível?
-- Qual o preço de uma **bateria**?
+- Quanto custa o **Takamine GD20**?
 
 **Políticas da loja (RAG no PDF)**
 
@@ -169,7 +240,7 @@ Limites: `ORDER_CONTEXT_LIMIT` (pedidos listados por cliente), `ORDER_DETAIL_MAX
 
 ## Chat (`./chat.sh`)
 
-O assistente combina: `system_prompt` da Maiara, prompts modulares, resumo PostgreSQL, **produtos relacionados (SQL)**, **pedidos (nº do pedido, e-mail ou sessão CLI)**, **trechos do PDF (ChromaDB)** e últimas `CHAT_HISTORY_LIMIT` mensagens (`channel=cli`).
+O assistente combina: `system_prompt` da Maiara, prompts modulares, **dados da loja**, resumo PostgreSQL, **produtos relacionados (SQL, com filtro de preço quando aplicável)**, **pedidos (nº do pedido, e-mail ou sessão CLI)**, **trechos do PDF (ChromaDB)** e últimas `CHAT_HISTORY_LIMIT` mensagens (`channel=cli`).
 
 Manifesto RAG: [`db/seed/rag_manifest.json`](db/seed/rag_manifest.json).
 
@@ -268,6 +339,7 @@ EmporiumOperationsAssistant/
 ├── install.sh
 ├── chat.sh
 ├── logs.sh
+├── delivery/examples/      # transcripts de entrega (desafio)
 ├── tests/                  # pytest (unit + integration leve)
 ├── data/
 ├── src/emporium_operations_assistant/
@@ -289,6 +361,6 @@ EmporiumOperationsAssistant/
 
 Planos locais: pasta `MDs/` (gitignored).
 
-## Repositório
+## Histórico de versões
 
-[github.com/ribahh-4738-code/EmporiumOperationsAssistant](https://github.com/ribahh-4738-code/EmporiumOperationsAssistant)
+Evolução por marcos (detalhes no [CHANGELOG.md](CHANGELOG.md)): v0.1 schema → v0.2 CSV → v0.3–4 chat Gemini → v0.5 RAG → v0.6 observabilidade → v0.7 pedidos → v0.8 pytest → **v0.9 entrega Artefact**.

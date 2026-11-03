@@ -6,7 +6,7 @@
 
 ## Conversa
 
-**Cliente:** Quais opções de violões disponíveis custando até R$1000?
+**Cliente:** Quais são as opções de violões disponíveis custando até R$1000?
 
 **Maiara:** Temos várias opções de violões dentro desse valor, por exemplo:
 

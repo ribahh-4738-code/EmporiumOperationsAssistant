@@ -51,14 +51,16 @@ flowchart TB
 ## Início rápido
 
 1. **Pré-requisitos:** Docker, Python 3.11+, Bash.
-2. **`./install.sh`** — PostgreSQL, schema, CSVs, persona Maiara, ChromaDB + Admin UI (passo 11), ingestão RAG (passo 12); `[skip]` / `[run]`. Ao terminar, anote a URL do Admin (`http://127.0.0.1:` + `CHROMA_ADMIN_PORT` no `.env`).
-3. Edite **`.env`** e defina **`GEMINI_API_KEY`** (chat + embeddings RAG). Se o install rodou antes da chave existir, veja [Scripts após o install](#scripts-após-o-install).
-4. **`./chat.sh`** — conversa com a Maiara.
+2. Copie **`cp .env.example .env`**, edite **`.env`** e defina **`GEMINI_API_KEY`** (chat + embeddings RAG). 
+3. **`./install.sh`** — PostgreSQL, schema, CSVs, persona Maiara, ChromaDB + Admin UI (passo 11), ingestão RAG (passo 12); `[skip]` / `[run]`. 
+4. Anote a URL do Admin (`http://127.0.0.1:` + `CHROMA_ADMIN_PORT` no `.env`).
+5. **`./chat.sh`** — conversa com a Maiara.
 
 ```bash
 chmod +x install.sh chat.sh stop.sh
-./install.sh
+cp .env.example .env
 # editar .env → GEMINI_API_KEY=...
+./install.sh
 ./chat.sh
 ```
 
@@ -100,7 +102,7 @@ Testes (opcional): `.venv/bin/pip install -e ".[dev]"` e `./scripts/test.sh`.
 
 Este repositório foi desenvolvido com **Cursor** (Agent + planos incrementais):
 
-- Marcos versionados (`v0.1.0` … `v0.9.3`) com commits e tags reais.
+- Marcos versionados (`v0.1.0` … `v1.0.0`) com commits e tags reais.
 - Planos locais em `MDs/` (gitignored) para alinhar escopo antes de codar.
 - A IA gerou boilerplate, testes pytest, scripts bash e docs; **revisão humana** em schema, prompts, seed e exemplos de entrega.
 - Testes (`./scripts/test.sh`) e smoke manual (`./chat.sh`) antes de release.
@@ -421,4 +423,4 @@ Planos locais: pasta `MDs/` (gitignored).
 
 ## Histórico de versões
 
-Evolução por marcos (detalhes no [CHANGELOG.md](CHANGELOG.md)): v0.1 schema → v0.2 CSV → v0.3–4 chat Gemini → v0.5 RAG → v0.6 observabilidade → v0.7 pedidos → v0.8 pytest → v0.9 entrega Artefact → v0.9.1 Admin Chroma → v0.9.2 `stop.sh` → **v0.9.3 docs contexto por turno**.
+Evolução por marcos (detalhes no [CHANGELOG.md](CHANGELOG.md)): v0.1 schema → … → v0.9 Artefact → v0.9.1–3 ops/docs → **v1.0.0 primeira entrega (revisão)**.

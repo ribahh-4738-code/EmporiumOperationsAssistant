@@ -7,6 +7,13 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-03
+
+### Alterado
+
+- README: ordem do início rápido (`.env` + `GEMINI_API_KEY` antes do `install.sh`); bloco bash alinhado
+- [`delivery/examples/`](delivery/examples/): revisão de texto nos exemplos 01 e 02
+
 ## [0.9.3] - 2026-11-03
 
 ### Alterado

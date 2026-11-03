@@ -6,7 +6,7 @@
 
 ## Conversa
 
-**Cliente:** Qual o endereço da loja?
+**Cliente:** Qual é o endereço da loja?
 
 **Maiara:** A Empório da Música fica na **Rua 14 de Maio, 3200 — Centro, Campo Grande – MS, CEP 79202-333**.
 

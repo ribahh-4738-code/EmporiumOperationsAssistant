@@ -20,7 +20,7 @@ Ela distingue **dados operacionais** (SQL) de **regras** (RAG) e recusa pergunta
 ## Início rápido
 
 1. **Pré-requisitos:** Docker, Python 3.11+, Bash.
-2. **`./install.sh`** — PostgreSQL, schema, CSVs, persona Maiara, ChromaDB, ingestão do PDF de políticas (passos incrementais; `[skip]` / `[run]`).
+2. **`./install.sh`** — PostgreSQL, schema, CSVs, persona Maiara, ChromaDB + Admin UI (passo 11), ingestão RAG (passo 12); `[skip]` / `[run]`. Ao terminar, anote a URL do Admin (`http://127.0.0.1:` + `CHROMA_ADMIN_PORT` no `.env`).
 3. Edite **`.env`** e defina **`GEMINI_API_KEY`** (chat + embeddings RAG). Se o install rodou antes da chave existir, veja [Scripts após o install](#scripts-após-o-install).
 4. **`./chat.sh`** — conversa com a Maiara.
 
@@ -67,7 +67,7 @@ Testes (opcional): `.venv/bin/pip install -e ".[dev]"` e `./scripts/test.sh`.
 
 Este repositório foi desenvolvido com **Cursor** (Agent + planos incrementais):
 
-- Marcos versionados (`v0.1.0` … `v0.9.0`) com commits e tags reais.
+- Marcos versionados (`v0.1.0` … `v0.9.1`) com commits e tags reais.
 - Planos locais em `MDs/` (gitignored) para alinhar escopo antes de codar.
 - A IA gerou boilerplate, testes pytest, scripts bash e docs; **revisão humana** em schema, prompts, seed e exemplos de entrega.
 - Testes (`./scripts/test.sh`) e smoke manual (`./chat.sh`) antes de release.
@@ -230,9 +230,11 @@ Limites: `ORDER_CONTEXT_LIMIT` (pedidos listados por cliente), `ORDER_DETAIL_MAX
 
 ## Marco 5 (v0.5.0) — ChromaDB + políticas da loja
 
-- ChromaDB + **ChromaDB Admin** (passo 11 do install)
+- ChromaDB + **ChromaDB Admin** (passos **11–12** do install)
 - RAG sobre [`data/políticas_da_loja.pdf`](data/políticas_da_loja.pdf) (parcelamento e demais políticas)
 - Se alterar o PDF: `./scripts/chroma/ingest_rag.sh` (ou `--force`)
+
+**Admin UI (v0.9.1):** imagem local **`emporium-chromadb-admin:1.5`** (API v2); detalhes em [ChromaDB (API + Admin + RAG)](#chromadb-api--admin--rag).
 
 ## Marco 4 (v0.4.0) — Chat CLI
 
@@ -246,12 +248,22 @@ Manifesto RAG: [`db/seed/rag_manifest.json`](db/seed/rag_manifest.json).
 
 ### ChromaDB (API + Admin + RAG)
 
-| Serviço | URL padrão | Uso |
-|---------|------------|-----|
-| Chroma API | `http://localhost:8001` | Coleção `store_policies` |
-| **ChromaDB Admin** | `http://127.0.0.1:3001` | UI ([flanker/chromadb-admin](https://github.com/flanker/chromadb-admin)) |
+| Serviço | URL | Uso |
+|---------|-----|-----|
+| Chroma API | `http://localhost:`**`CHROMA_PORT`** (padrão **8001**) | Coleção `store_policies` — só JSON, não é página web |
+| **ChromaDB Admin** | `http://127.0.0.1:`**`CHROMA_ADMIN_PORT`** (padrão **3001**; use **3002** no `.env` se a 3001 estiver ocupada) | UI Next.js ([flanker/chromadb-admin](https://github.com/flanker/chromadb-admin), build local em [`docker/chromadb-admin/`](docker/chromadb-admin/)) |
 
-No Admin, URL do servidor: `http://host.docker.internal:8001` (ajuste `CHROMA_PORT` se necessário). Coleção: **`store_policies`**.
+No **Setup** do Admin use:
+
+| Campo | Valor |
+|--------|--------|
+| Chroma URL | `http://host.docker.internal:8001` (ajuste `CHROMA_PORT`) |
+| Tenant | **`default_tenant`** |
+| Database | **`default_database`** |
+
+Coleção esperada: **`store_policies`**. Se aparecer *getCollections … 500*, quase sempre é **tenant/database errados** (`default` em vez de `default_tenant`) ou imagem Docker antiga (API v1).
+
+**Admin UI:** imagem **`EMPORIUM_CHROMA_ADMIN_IMAGE=emporium-chromadb-admin:1.5`** — [`build_chroma_admin_image.sh`](scripts/chroma/build_chroma_admin_image.sh); o passo **11** do install **constrói** se a imagem não existir e **recria** o container se a imagem no `.env` mudou (ex.: sair de `sanderdw`). Imagens Hub `sanderdw`/`fengzhichao` chamam `/api/v1` → incompatível com **`chromadb/chroma:1.5.9`**. Mapeamento Docker: host **`CHROMA_ADMIN_PORT`** → container **`CHROMA_ADMIN_CONTAINER_PORT`** (padrão **3001**).
 
 **Atualizar o PDF:** se alterar o PDF: `./scripts/chroma/ingest_rag.sh` (ou `--force`).
 
@@ -271,19 +283,25 @@ Na primeira execução do chat, se a coleção não existir, o `./chat.sh` sobe 
 ./install.sh
 ```
 
-O instalador:
+O instalador segue o plano de [`install.sh`](install.sh) (12 passos; `[skip]` quando já satisfeito):
 
-1. `.env` a partir de `.env.example` (se ausente) + sync de chaves novas
-2. Container **`emporium_ops_postgres`** (porta **5435**)
-3. Banco `emporium_operation`, `db/schema.sql`, migrations pendentes
-4. `.venv` + dependências Python
-5. Import CSV (`data/*.csv`) — **truncate** das tabelas operacionais a cada run
-6. Verificação de contagens ([`db/seed/manifest.json`](db/seed/manifest.json))
-7. Seed Maiara (`assistant_profile` / `assistant_prompt`) — **não** apaga `assistant_chat_message`
-8. Containers **`emporium_ops_chroma`** (8001) e **`emporium_ops_chroma_admin`** (3001)
-9. Ingest RAG dos PDFs do manifesto ( **pula** indexação se `GEMINI_API_KEY` vazia)
+| Passo | O quê |
+|-------|--------|
+| 1–2 | Pré-requisitos (Docker, Python 3) + `.env` (cria de `.env.example`, sync de chaves) |
+| 3–6 | Postgres Docker (**5435**), banco `emporium_operation`, `schema.sql`, migrations |
+| 7 | `.venv` + `pip install -e .` |
+| 8–9 | Import CSV (`data/*.csv`, **truncate** operacional) + verify vs [`manifest.json`](db/seed/manifest.json) |
+| 10 | Seed Maiara — **não** apaga `assistant_chat_message` |
+| **11** | **`emporium_ops_chroma`** (`CHROMA_PORT`, padrão 8001) + **`emporium_ops_chroma_admin`** (UI; build/recreate conforme `.env`) |
+| **12** | Ingest RAG (idempotente por hash; **pula** se `GEMINI_API_KEY` vazia) |
 
-Conexões: PostgreSQL `localhost:5435`, Chroma `8001`, Admin `http://127.0.0.1:3001`.
+**URLs após o install** (valores reais no seu [`.env`](.env.example)):
+
+- PostgreSQL: `localhost:`**`POSTGRES_PORT`** (padrão **5435**)
+- Chroma API: `http://localhost:`**`CHROMA_PORT`** (padrão **8001**)
+- Admin UI: `http://127.0.0.1:`**`CHROMA_ADMIN_PORT`** (padrão **3001**; confira a mensagem final do install)
+
+Para **forçar** recriação só do Admin: `docker rm -f emporium_ops_chroma_admin` e passo 11 de novo (`./scripts/chroma/ensure_chroma_admin_container.sh` ou `./install.sh`).
 
 ### Scripts após o install
 
@@ -296,11 +314,14 @@ Conexões: PostgreSQL `localhost:5435`, Chroma `8001`, Admin `http://127.0.0.1:3
 | [`scripts/chroma/ingest_rag.sh`](scripts/chroma/ingest_rag.sh) | PDF de políticas alterado ou ingest falhou no install | Reindexa `store_policies` no Chroma |
 | [`scripts/chroma/ingest_rag.sh --force`](scripts/chroma/ingest_rag.sh) | Mesmo PDF, quer rebuild completo | Ignora hash e recria a coleção |
 | [`scripts/chroma/ensure_chroma_container.sh`](scripts/chroma/ensure_chroma_container.sh) | Docker reiniciado / Chroma parado | Sobe API Chroma 1.5.9 |
-| [`scripts/chroma/ensure_chroma_admin_container.sh`](scripts/chroma/ensure_chroma_admin_container.sh) | Admin UI offline | Sobe UI na porta 3001 |
+| [`scripts/chroma/build_chroma_admin_image.sh`](scripts/chroma/build_chroma_admin_image.sh) | Erro *getCollections 500* / Chroma 1.5 | Constrói UI compatível com API v2 |
+| [`scripts/chroma/ensure_chroma_admin_container.sh`](scripts/chroma/ensure_chroma_admin_container.sh) | Admin UI offline | Sobe UI na porta `CHROMA_ADMIN_PORT` |
 | [`scripts/db/verify_seed.sh`](scripts/db/verify_seed.sh) | Conferir CSV importado | Compara linhas com o manifest |
-| [`./install.sh`](install.sh) de novo | CSVs ou schema mudaram | Reaplica migrations, reimporta CSVs, RAG idempotente |
+| [`./install.sh`](install.sh) de novo | CSVs, schema ou `.env` Chroma/Admin | Migrations, CSVs, passo 11 (Chroma + Admin), RAG idempotente |
 
-Se após o install **não** havia `GEMINI_API_KEY`: defina a chave no `.env` e rode **`./scripts/chroma/ingest_rag.sh`** (ou apenas **`./chat.sh`**, que tenta indexar na abertura).
+Se após o install **não** havia `GEMINI_API_KEY`: defina a chave no `.env` e rode **`./scripts/chroma/ingest_rag.sh`**.
+
+**PDF alterado com coleção já existente:** o **`./chat.sh`** só indexa na abertura se a coleção **não existir**; após editar o PDF, rode **`./scripts/chroma/ingest_rag.sh`** (detecta mudança pelo hash SHA-256 do arquivo).
 
 ### Dados de seed e truncate
 
@@ -320,7 +341,7 @@ CSVs em [`data/`](data/) = export do sistema externo; cada `./install.sh` **subs
 | `assistant_prompt` | Prompts por `module_key` |
 | `assistant_chat_message` | Auditoria (`user` / `model`, `channel`) |
 
-Variáveis principais: `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_EMBEDDING_MODEL`, `CHROMA_*`, `RAG_*`, `ASSISTANT_LOG_PATH`, `GEMINI_DAILY_TOKEN_BUDGET`, `CATALOG_SEARCH_LIMIT`, `CHAT_CUSTOMER_ID`, `ORDER_CONTEXT_LIMIT` — ver [`.env.example`](.env.example).
+Variáveis principais: `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_EMBEDDING_MODEL`, `CHROMA_*` (incl. **`CHROMA_ADMIN_PORT`**, **`EMPORIUM_CHROMA_ADMIN_IMAGE`**), `RAG_*`, `ASSISTANT_LOG_PATH`, `GEMINI_DAILY_TOKEN_BUDGET`, `CATALOG_SEARCH_LIMIT`, `CHAT_CUSTOMER_ID`, `ORDER_CONTEXT_LIMIT` — ver [`.env.example`](.env.example).
 
 Teste Gemini (opcional):
 
@@ -344,10 +365,11 @@ EmporiumOperationsAssistant/
 ├── data/
 ├── src/emporium_operations_assistant/
 │   ├── assistant/  cli/  llm/  observability/  rag/  seed/
+├── docker/
+│   └── chromadb-admin/     # Dockerfile UI Admin (API v2, Chroma 1.5)
 └── scripts/
     ├── test.sh
     ├── status.sh
-    ├── chat.sh             # redireciona para ./chat.sh
     ├── chroma/
     └── db/
 ```
@@ -363,4 +385,4 @@ Planos locais: pasta `MDs/` (gitignored).
 
 ## Histórico de versões
 
-Evolução por marcos (detalhes no [CHANGELOG.md](CHANGELOG.md)): v0.1 schema → v0.2 CSV → v0.3–4 chat Gemini → v0.5 RAG → v0.6 observabilidade → v0.7 pedidos → v0.8 pytest → **v0.9 entrega Artefact**.
+Evolução por marcos (detalhes no [CHANGELOG.md](CHANGELOG.md)): v0.1 schema → v0.2 CSV → v0.3–4 chat Gemini → v0.5 RAG → v0.6 observabilidade → v0.7 pedidos → v0.8 pytest → v0.9 entrega Artefact → **v0.9.1 fix ChromaDB Admin (API v2)**.

@@ -41,7 +41,9 @@ apply_chroma_defaults() {
   EMPORIUM_CHROMA_IMAGE="${EMPORIUM_CHROMA_IMAGE:-chromadb/chroma:1.5.9}"
   EMPORIUM_CHROMA_VOLUME="${EMPORIUM_CHROMA_VOLUME:-emporium_ops_chromadata}"
   EMPORIUM_CHROMA_ADMIN_CONTAINER="${EMPORIUM_CHROMA_ADMIN_CONTAINER:-emporium_ops_chroma_admin}"
-  EMPORIUM_CHROMA_ADMIN_IMAGE="${EMPORIUM_CHROMA_ADMIN_IMAGE:-fengzhichao/chromadb-admin:latest}"
+  # Pre-built Hub images call deprecated Chroma HTTP /api/v1; build locally for 1.5.x (see build_chroma_admin_image.sh).
+  EMPORIUM_CHROMA_ADMIN_IMAGE="${EMPORIUM_CHROMA_ADMIN_IMAGE:-emporium-chromadb-admin:1.5}"
+  CHROMA_ADMIN_CONTAINER_PORT="${CHROMA_ADMIN_CONTAINER_PORT:-3001}"
   CHROMA_ADMIN_PORT="${CHROMA_ADMIN_PORT:-3001}"
 }
 

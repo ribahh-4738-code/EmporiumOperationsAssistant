@@ -7,6 +7,14 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.9.1] - 2026-11-03
+
+### Corrigido
+
+- **ChromaDB Admin** com Chroma **1.5.x**: imagem local `emporium-chromadb-admin:1.5` (API v2; Hub `sanderdw`/`fengzhichao` usavam `/api/v1` → *getCollections 500*)
+- [`scripts/chroma/build_chroma_admin_image.sh`](scripts/chroma/build_chroma_admin_image.sh) e [`docker/chromadb-admin/Dockerfile`](docker/chromadb-admin/Dockerfile); [`ensure_chroma_admin_container.sh`](scripts/chroma/ensure_chroma_admin_container.sh) constrói se faltar, recria container em troca de imagem, aviso de conflito de porta
+- README: Setup com `default_tenant` / `default_database`; reindex do PDF via `ingest_rag.sh` (não automático no chat se a coleção já existir)
+
 ## [0.9.0] - 2026-11-03
 
 ### Adicionado

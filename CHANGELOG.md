@@ -7,6 +7,12 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.9.3] - 2026-11-03
+
+### Alterado
+
+- README: diagrama Mermaid e tabela de injeção de contexto por turno (SQL/RAG/histórico; não é dump do PostgreSQL)
+
 ## [0.9.2] - 2026-11-03
 
 ### Adicionado

@@ -17,6 +17,37 @@ A Maiara responde com base em contexto injetado a cada turno:
 
 Ela distingue **dados operacionais** (SQL) de **regras** (RAG) e recusa perguntas fora do escopo da loja (módulo `out_of_scope`).
 
+**Importante:** o PostgreSQL **inteiro** não vai no prompt. A **cada mensagem** o [`ChatService`](src/emporium_operations_assistant/assistant/chat.py) remonta a `system_instruction` (trechos abaixo) e envia ao Gemini junto com o **histórico** (`assistant_chat_message`, só texto).
+
+```mermaid
+flowchart TB
+  userMsg[Mensagem do usuario]
+  sys[system_instruction por turno]
+  hist[Historico de chat]
+  llm[Gemini]
+  userMsg --> sys
+  userMsg --> hist
+  sys --> llm
+  hist --> llm
+  subgraph sysBlocks [Blocos da system_instruction]
+    persona[Persona e modulos assistant]
+    store[Endereco e horarios fixos]
+    catalog[SQL resumo e produtos por keywords]
+    orders[SQL pedidos se aplicavel]
+    rag[RAG top-K no Chroma]
+  end
+  sys --> sysBlocks
+```
+
+| Bloco | Fonte | A cada turno? |
+|--------|--------|----------------|
+| Persona + módulos | `assistant_profile` / `assistant_prompt` | Sim |
+| Endereço / horários | Texto fixo ([`store_context`](src/emporium_operations_assistant/assistant/store_context.py), PDF §1.2/§2) | Sim |
+| Catálogo | SQL: resumo agregado + até `CATALOG_SEARCH_LIMIT` produtos ligados à **pergunta atual** | Sim |
+| Pedidos | SQL: só se houver nº do pedido, e-mail na mensagem ou `--customer-id` / `CHAT_CUSTOMER_ID` | Condicional |
+| Políticas (RAG) | Chroma `store_policies`, top `RAG_TOP_K` chunks pela pergunta | Sim |
+| Histórico | Últimas `CHAT_HISTORY_LIMIT` mensagens user/model | Sim (como conversa, sem re-injetar SQL/RAG nas mensagens antigas) |
+
 ## Início rápido
 
 1. **Pré-requisitos:** Docker, Python 3.11+, Bash.
@@ -69,7 +100,7 @@ Testes (opcional): `.venv/bin/pip install -e ".[dev]"` e `./scripts/test.sh`.
 
 Este repositório foi desenvolvido com **Cursor** (Agent + planos incrementais):
 
-- Marcos versionados (`v0.1.0` … `v0.9.2`) com commits e tags reais.
+- Marcos versionados (`v0.1.0` … `v0.9.3`) com commits e tags reais.
 - Planos locais em `MDs/` (gitignored) para alinhar escopo antes de codar.
 - A IA gerou boilerplate, testes pytest, scripts bash e docs; **revisão humana** em schema, prompts, seed e exemplos de entrega.
 - Testes (`./scripts/test.sh`) e smoke manual (`./chat.sh`) antes de release.
@@ -390,4 +421,4 @@ Planos locais: pasta `MDs/` (gitignored).
 
 ## Histórico de versões
 
-Evolução por marcos (detalhes no [CHANGELOG.md](CHANGELOG.md)): v0.1 schema → v0.2 CSV → v0.3–4 chat Gemini → v0.5 RAG → v0.6 observabilidade → v0.7 pedidos → v0.8 pytest → v0.9 entrega Artefact → v0.9.1 Admin Chroma → **v0.9.2 `stop.sh`**.
+Evolução por marcos (detalhes no [CHANGELOG.md](CHANGELOG.md)): v0.1 schema → v0.2 CSV → v0.3–4 chat Gemini → v0.5 RAG → v0.6 observabilidade → v0.7 pedidos → v0.8 pytest → v0.9 entrega Artefact → v0.9.1 Admin Chroma → v0.9.2 `stop.sh` → **v0.9.3 docs contexto por turno**.

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "emporium-operations-assistant"
-version = "0.7.0"
+version = "0.8.0"
 description = "Conversational operations assistant for Emporium (Maiara persona)"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -15,8 +15,18 @@ dependencies = [
   "pypdf>=5.0",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
 [project.scripts]
 emporium-chat = "emporium_operations_assistant.cli.main:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+markers = [
+    "integration: optional tests that require local PostgreSQL (Docker stack)",
+]

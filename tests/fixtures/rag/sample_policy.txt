@@ -1,0 +1,2 @@
+Política fictícia para testes: aceitamos PIX e cartão em até 12 parcelas.
+Prazo de entrega estimado conforme rastreio. UNIQUE_MARKER_RAG_TEST_42.

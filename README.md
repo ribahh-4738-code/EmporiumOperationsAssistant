@@ -40,6 +40,66 @@ Itens **não** previstos nesta fase do protótipo (tempo / prioridade):
 | **Busca de pedidos por nome** | Só **nº do pedido** e **e-mail** (e sessão CLI); homônimos ficam fora deste protótipo |
 | **Login / OTP em pedidos** | Quem souber e-mail ou nº do pedido vê dados no CLI — não é canal autenticado |
 
+## Marco 8 (v0.8.0) — Testes
+
+O projeto usa **pytest**. As dependências de desenvolvimento **não** entram no `./install.sh` normal — instale uma vez após criar o `.venv`:
+
+```bash
+.venv/bin/pip install -e ".[dev]"
+```
+
+### Como rodar
+
+| Comando | Quando usar |
+|---------|-------------|
+| **`./scripts/test.sh`** | Padrão antes de commit: **não** exige Docker, `GEMINI_API_KEY`, Chroma nem Postgres |
+| **`./scripts/test.sh --integration`** | Depois do `./install.sh`, com Postgres no ar: smoke de SQL real (pedido #8) |
+| **`.venv/bin/pytest -q`** | Equivalente ao script (exclui `@pytest.mark.integration`) |
+| **`.venv/bin/pytest -q -m integration`** | Só testes marcados como integração |
+
+O GitHub Actions (`.github/workflows/tests.yml`) roda o mesmo conjunto do `./scripts/test.sh` em cada push/PR em `main`.
+
+### O que cada camada testa
+
+**Unitários** (`tests/unit/`) — funções puras ou com mocks; rápidos e determinísticos:
+
+| Arquivo | Foco |
+|---------|------|
+| `test_chunking.py` | Divisão de texto para RAG (`chunk_text`) |
+| `test_order_lookup.py` | Extração de **nº do pedido** e **e-mail** (frases do Marco 7) |
+| `test_catalog_search.py` | Keywords de catálogo (stopwords PT) |
+| `test_llm_history.py` | Regras Gemini: turnos `user`/`model` alternados |
+| `test_order_context_format.py` | Texto do bloco de pedidos (SQL mockado) |
+| `test_observability.py` | JSONL em path temporário + contador diário de tokens |
+| `test_seed_validate.py` | Cabeçalhos de `data/*.csv` batem com `db/seed/manifest.json` |
+
+**Integração leve** (`tests/integration/test_rag_ingest_light.py`) — pipeline de ingest **sem** API Gemini e **sem** container Chroma:
+
+- `chromadb.EphemeralClient` (memória)
+- PDF e embeddings **mockados**; fixture de texto em `tests/fixtures/rag/sample_policy.txt`
+- Valida indexação, hash idempotente (segundo ingest sem `--force` = skip) e `search_policy_chunks`
+
+**Integração Postgres** (`tests/integration/test_postgres_orders.py`) — marcada com `@pytest.mark.integration`:
+
+- Conecta com credenciais do `.env` (`POSTGRES_*`)
+- Se o banco não responder, o teste é **skipped** (não falha o CI nem quem não subiu Docker)
+
+### O que os testes não cobrem (por enquanto)
+
+- Chat end-to-end com Gemini (custo/API)
+- Ingest do PDF real `data/políticas_da_loja.pdf` em CI
+- Chroma HTTP na porta 8001
+
+### Layout
+
+```
+tests/
+├── conftest.py           # paths temporários (.run / JSONL)
+├── unit/
+├── integration/
+└── fixtures/rag/
+```
+
 ## Marco 7 (v0.7.0) — Consulta de pedidos
 
 A Maiara inclui **pedidos reais do PostgreSQL** no contexto quando você informa:
@@ -161,6 +221,7 @@ Conexões: PostgreSQL `localhost:5435`, Chroma `8001`, Admin `http://127.0.0.1:3
 | **[`./chat.sh`](chat.sh)** | Uso diário | Chat com a Maiara; garante container Chroma; grava log em `.run/` |
 | **[`./logs.sh`](logs.sh)** | Debug em paralelo | `tail -f` do JSONL (SQL, RAG, tokens) |
 | **[`./scripts/status.sh`](scripts/status.sh)** | Verificar stack | Postgres, Chroma, chunks indexados |
+| **[`./scripts/test.sh`](scripts/test.sh)** | Regressão rápida | pytest (dev deps); `--integration` com Postgres local |
 | [`scripts/chroma/ingest_rag.sh`](scripts/chroma/ingest_rag.sh) | PDF de políticas alterado ou ingest falhou no install | Reindexa `store_policies` no Chroma |
 | [`scripts/chroma/ingest_rag.sh --force`](scripts/chroma/ingest_rag.sh) | Mesmo PDF, quer rebuild completo | Ignora hash e recria a coleção |
 | [`scripts/chroma/ensure_chroma_container.sh`](scripts/chroma/ensure_chroma_container.sh) | Docker reiniciado / Chroma parado | Sobe API Chroma 1.5.9 |
@@ -207,10 +268,12 @@ EmporiumOperationsAssistant/
 ├── install.sh
 ├── chat.sh
 ├── logs.sh
+├── tests/                  # pytest (unit + integration leve)
 ├── data/
 ├── src/emporium_operations_assistant/
 │   ├── assistant/  cli/  llm/  observability/  rag/  seed/
 └── scripts/
+    ├── test.sh
     ├── status.sh
     ├── chat.sh             # redireciona para ./chat.sh
     ├── chroma/

@@ -7,6 +7,16 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-03
+
+### Adicionado
+
+- **pytest** — extra `dev` em [`pyproject.toml`](pyproject.toml), pasta [`tests/`](tests/)
+- [`scripts/test.sh`](scripts/test.sh) — default sem Postgres; `--integration` para smoke de pedidos
+- Integração leve RAG: ingest + retrieval com `EphemeralClient` e `embed_texts` mockado
+- GitHub Actions [`.github/workflows/tests.yml`](.github/workflows/tests.yml)
+- README: instruções detalhadas de pytest (camadas, comandos, limites)
+
 ## [0.7.0] - 2026-11-03
 
 ### Adicionado
@@ -116,7 +126,8 @@ e este projeto adere ao [Versionamento Semântico](https://semver.org/lang/pt-BR
 - `.gitignore` para Python, ambiente e ferramentas futuras
 - Script `scripts/db/create_database.sh` para criação idempotente do banco
 
-[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.7.0...v0.8.0
 [0.7.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.6.0...v0.7.0
 [0.6.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/ribahh-4738-code/EmporiumOperationsAssistant/compare/v0.4.0...v0.5.0

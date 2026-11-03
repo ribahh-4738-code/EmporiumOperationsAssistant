@@ -57,7 +57,7 @@ O projeto usa **pytest**. As dependências de desenvolvimento **não** entram no
 | **`.venv/bin/pytest -q`** | Equivalente ao script (exclui `@pytest.mark.integration`) |
 | **`.venv/bin/pytest -q -m integration`** | Só testes marcados como integração |
 
-O GitHub Actions (`.github/workflows/tests.yml`) roda o mesmo conjunto do `./scripts/test.sh` em cada push/PR em `main`.
+**CI (GitHub Actions):** o workflow está em [`.github/workflows/tests.yml`](.github/workflows/tests.yml) (pytest igual ao `./scripts/test.sh`). Se o `git push` falhar por falta de scope `workflow` no token OAuth, rode `gh auth refresh -s workflow` e envie só esse arquivo, ou crie o workflow pela UI do GitHub.
 
 ### O que cada camada testa
 
